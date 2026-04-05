@@ -32,3 +32,6 @@ export const COLORS_ARRAY = [
   "#3b82f6", "#06b6d4", "#818cf8", "#f59e0b", "#10b981", 
   "#ef4444", "#8b5cf6", "#f97316", "#14b8a6", "#e879f9"
 ]
+
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+export const WS_BASE = import.meta.env.VITE_WS_BASE_URL || 'http://localhost:8080/ws'

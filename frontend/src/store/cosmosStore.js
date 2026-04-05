@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import axios from 'axios'
-import { AVATAR_CONFIG, COLORS_ARRAY } from '../config'
+import { AVATAR_CONFIG, COLORS_ARRAY, API_BASE } from '../config'
 
 const STORAGE_KEY = 'cosmos_session'
 
@@ -55,7 +55,7 @@ export const useCosmosStore = create((set, get) => ({
 
   login: async (email, password) => {
     try {
-      const res = await axios.post('http://localhost:8080/api/auth/login', { email, password })
+      const res = await axios.post(`${API_BASE}/auth/login`, { email, password })
       get().setAuth(res.data, res.data.token)
       return { success: true }
     } catch (e) {
@@ -65,7 +65,7 @@ export const useCosmosStore = create((set, get) => ({
 
   register: async (username, email, password) => {
     try {
-      const res = await axios.post('http://localhost:8080/api/auth/register', { username, email, password })
+      const res = await axios.post(`${API_BASE}/auth/register`, { username, email, password })
       get().setAuth(res.data, res.data.token)
       return { success: true }
     } catch (err) {
@@ -99,7 +99,7 @@ export const useCosmosStore = create((set, get) => ({
   // 2. WORLD ACTIONS
   fetchSpaces: async () => {
     try {
-      const res = await axios.get('http://localhost:8080/api/cosmos/spaces')
+      const res = await axios.get(`${API_BASE}/cosmos/spaces`)
       set({ spaces: res.data })
     } catch (e) {
       console.error('[Store] Failed to fetch spaces:', e)
