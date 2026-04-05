@@ -25,12 +25,13 @@ public class CosmosWebSocketController {
      */
     @MessageMapping("/cosmos/join")
     public void handleJoin(@Payload JoinPayload payload,
-                           SimpMessageHeaderAccessor headerAccessor) {
-        String sessionId = headerAccessor.getSessionId();
+                           SimpMessageHeaderAccessor headerAccessor,
+                           java.security.Principal principal) {
+        String principalName = principal != null ? principal.getName() : headerAccessor.getSessionId();
         if (headerAccessor.getSessionAttributes() != null) {
             headerAccessor.getSessionAttributes().put("userId", payload.getId());
         }
-        cosmosService.handleJoin(payload, sessionId);
+        cosmosService.handleJoin(payload, principalName);
     }
 
     /**
@@ -64,9 +65,10 @@ public class CosmosWebSocketController {
      * Client sends: /app/cosmos/leave
      */
     @MessageMapping("/cosmos/leave")
-    public void handleLeave(SimpMessageHeaderAccessor headerAccessor) {
-        String sessionId = headerAccessor.getSessionId();
-        cosmosService.handleLeave(sessionId);
+    public void handleLeave(SimpMessageHeaderAccessor headerAccessor, 
+                            java.security.Principal principal) {
+        String principalName = principal != null ? principal.getName() : headerAccessor.getSessionId();
+        cosmosService.handleLeave(principalName);
     }
 
     /**
@@ -74,9 +76,10 @@ public class CosmosWebSocketController {
      */
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
-        String sessionId = event.getSessionId();
-        log.debug("[Disconnect] Session: {}", sessionId);
-        cosmosService.handleLeave(sessionId);
+        java.security.Principal principal = event.getUser();
+        String principalName = principal != null ? principal.getName() : event.getSessionId();
+        log.debug("[Disconnect] Principal: {}", principalName);
+        cosmosService.handleLeave(principalName);
     }
 
     // ========== Helpers ==========

@@ -1,5 +1,6 @@
 package com.cosmos.config;
 
+import com.cosmos.websocket.CosmosHandshakeHandler;
 import com.cosmos.websocket.CosmosHandshakeInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,9 +31,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(origins)
                 .addInterceptors(handshakeInterceptor)
+                .setHandshakeHandler(new CosmosHandshakeHandler())
                 .withSockJS();
         registry.addEndpoint("/ws-native")
                 .setAllowedOriginPatterns(origins)
-                .addInterceptors(handshakeInterceptor);
+                .addInterceptors(handshakeInterceptor)
+                .setHandshakeHandler(new CosmosHandshakeHandler());
     }
 }

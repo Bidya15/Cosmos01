@@ -7,7 +7,6 @@ import com.cosmos.model.UserSession;
 import com.cosmos.repository.ChatMessageRepository;
 import com.cosmos.repository.SpaceRepository;
 import com.cosmos.repository.UserSessionRepository;
-import com.cosmos.utils.CosmosUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,9 +47,13 @@ public class CosmosService {
      * Synchronizes state with database and notifies existing users.
      */
     @Transactional
-    public void handleJoin(JoinPayload payload, String sessionId) {
+    public void handleJoin(JoinPayload payload, String principalName) {
+        if (payload == null || payload.getId() == null || principalName == null) {
+            log.warn("[Join] Rejected entrance: Incomplete signal payload or principal.");
+            return;
+        }
+
         String spaceId = payload.getSpaceId();
-        if (spaceId == null || spaceId.isBlank()) spaceId = "default";
         
         log.info("[Join] User '{}' (id={}) entering space '{}'", payload.getUsername(), payload.getId(), spaceId);
 
@@ -76,17 +79,17 @@ public class CosmosService {
                 .build();
 
         // Register in-memory
-        userStateStore.addUser(userDto, spaceId, sessionId);
+        userStateStore.addUser(userDto, spaceId, principalName);
 
         // Persistence: Sync session state to database
-        final String finalSpaceId = spaceId;
+        final String finalSpaceId = spaceId != null ? spaceId : "default";
         UserSession session = userSessionRepository.findById(payload.getId()).map(existing -> {
             existing.setUsername(sanitize(payload.getUsername()));
             existing.setColor(payload.getColor());
             existing.setSpaceId(finalSpaceId);
             existing.setX(x);
             existing.setY(y);
-            existing.setSessionId(sessionId);
+            existing.setSessionId(principalName);
             existing.setOnline(true);
             existing.setLastSeenAt(Instant.now());
             return existing;
@@ -97,7 +100,7 @@ public class CosmosService {
                 .color(payload.getColor())
                 .x(x)
                 .y(y)
-                .sessionId(sessionId)
+                .sessionId(principalName)
                 .online(true)
                 .joinedAt(Instant.now())
                 .lastSeenAt(Instant.now())
@@ -107,11 +110,14 @@ public class CosmosService {
 
         // Provide joining user with current room environment
         List<UserDTO> existingUsers = userStateStore.getOtherUsersInSpace(payload.getId(), spaceId);
-        messagingTemplate.convertAndSendToUser(
-                sessionId,
-                "/queue/room-state",
-                RoomStatePayload.builder().users(existingUsers).build()
-        );
+        RoomStatePayload roomState = RoomStatePayload.builder().users(existingUsers).build();
+        if (roomState != null) {
+            messagingTemplate.convertAndSendToUser(
+                    principalName,
+                    "/queue/room-state",
+                    roomState
+            );
+        }
 
         // Broadcast presence to the local space topic
         messagingTemplate.convertAndSend(
@@ -119,7 +125,7 @@ public class CosmosService {
                 wrapEvent("USER_JOINED", userDto)
         );
 
-        log.info("[Join] Successfully established session {} for {}.", sessionId, payload.getId());
+        log.info("[Join] Successfully established session {} for {}.", principalName, payload.getId());
     }
 
     // ========== MOVE / SYNC ==========
@@ -139,14 +145,17 @@ public class CosmosService {
         String spaceId = userStateStore.getUserSpace(userId).orElse("default");
 
         // Real-time broadcast
-        messagingTemplate.convertAndSend(
-                "/topic/cosmos/" + spaceId,
-                wrapEvent("POSITION_UPDATE", PositionUpdatePayload.builder()
-                        .userId(userId)
-                        .x(x)
-                        .y(y)
-                        .build())
-        );
+        Map<String, Object> broadcastEvent = wrapEvent("POSITION_UPDATE", PositionUpdatePayload.builder()
+                .userId(userId)
+                .x(x)
+                .y(y)
+                .build());
+        if (broadcastEvent != null) {
+            messagingTemplate.convertAndSend(
+                    "/topic/cosmos/" + spaceId,
+                    broadcastEvent
+            );
+        }
 
         // Compute Proximity Graph: Detect range changes on every move
         Map<String, List<String>> changes = userStateStore.computeProximityChanges(userId);
@@ -219,8 +228,8 @@ public class CosmosService {
      * Gracefully cleans up user state and notifies the environment of departure.
      */
     @Transactional
-    public void handleLeave(String sessionId) {
-        userStateStore.getUserIdBySession(sessionId).ifPresent(userId -> {
+    public void handleLeave(String principalName) {
+        userStateStore.getUserIdBySession(principalName).ifPresent(userId -> {
             log.info("[Leave] Session termination for {}", userId);
             String spaceId = userStateStore.getUserSpace(userId).orElse("default");
 

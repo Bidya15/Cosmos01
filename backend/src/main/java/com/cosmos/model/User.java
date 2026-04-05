@@ -32,10 +32,15 @@ public class User {
     private String avatarUrl;
 
     @Column(nullable = false)
+    @Builder.Default
+    private String authProvider = "LOCAL";
+
+    @Column(nullable = false)
     private Instant createdAt;
 
     @PrePersist
     public void prePersist() {
-        if (createdAt == null) createdAt = Instant.now();
+        if (createdAt == null)
+            createdAt = Instant.now();
     }
 }

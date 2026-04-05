@@ -125,11 +125,15 @@ export default function AuthScreen() {
             </div>
           )}
 
-          {view === 'LOGIN' && (
+          {(view === 'LOGIN' || view === 'REGISTER') && (
             <div>
               <div className="flex justify-between items-center mb-2 px-3">
-                <label className="font-display text-[9px] tracking-widest text-blue-400 uppercase">Enigma (Password)</label>
-                <button type="button" onClick={() => setView('FORGOT')} className="text-[8px] text-white/30 hover:text-blue-400/60 uppercase tracking-tighter">Lost Signal?</button>
+                <label className="font-display text-[9px] tracking-widest text-blue-400 uppercase">
+                  {view === 'REGISTER' ? 'New Enigma (Password)' : 'Enigma (Password)'}
+                </label>
+                {view === 'LOGIN' && (
+                  <button type="button" onClick={() => setView('FORGOT')} className="text-[8px] text-white/30 hover:text-blue-400/60 uppercase tracking-tighter">Lost Signal?</button>
+                )}
               </div>
               <div className="relative group">
                 <input
@@ -156,7 +160,11 @@ export default function AuthScreen() {
             </div>
           )}
 
-          {error && <div className="text-pink-500 font-display text-[9px] tracking-wider text-center bg-pink-500/5 py-2">{error}</div>}
+          {error && (
+            <div className="text-pink-500 font-display text-[9px] tracking-wider text-center bg-pink-500/5 py-2">
+              {typeof error === 'object' ? (error.message || error.error || JSON.stringify(error)) : error}
+            </div>
+          )}
           {message && <div className="text-cyan-400 font-display text-[9px] tracking-wider text-center bg-cyan-400/5 py-2">{message}</div>}
 
           <button
