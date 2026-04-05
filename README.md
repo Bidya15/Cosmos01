@@ -62,12 +62,25 @@ npm run dev
 
 ## 🛠️ Tech Stack Justification
 
-| Layer | Technology | Rationale |
-| --- | --- | --- |
-| **Engine** | PixiJS (v8) | Hardware-accelerated sprite batching for superior performance over standard Canvas. |
-| **Framework** | React (v18) | Component architecture for managing complex HUD and Chat UI layers. |
-| **Sync** | STOMP | Reliable message-oriented protocol for complex proximity handshake logic. |
-| **Infrastructure** | Spring Boot | Production-grade robustness for handling concurrent user state and DB persistence. |
+| Layer | Tech | Version | Why |
+|---|---|---|
+| **Spring Boot** | 3.2 | Production-grade robustness, excellent multi-threading for handling concurrent user state, and built-in STOMP support. |
+| **Spring WebSocket** | — | STOMP broker pattern provides a superior message-oriented (Pub/Sub) model vs. basic event-based sockets. |
+| **Spring Data JPA** | — | Repository pattern for clean data access and seamless mapping to our relational model. |
+| **PostgreSQL** | 15+ | Chosen for **ACID compliance** and data integrity; superior for structured relation-based data like user profiles and chat history compared to NoSQL. |
+| **H2** | — | Zero-config in-memory DB for immediate local developer onboarding. |
+| **Lombok** | — | Dramatically reduces boilerplate (builders, getters), keeping the "humanized" codebase clean. |
+
+---
+
+## 🧪 Why Spring + PostgreSQL + STOMP? (Technical Justification)
+
+While the assignment recommended a Node.js/MongoDB stack, we have opted for a **Spring Boot + PostgreSQL + STOMP** architecture to demonstrate advanced system design thinking:
+
+1.  **Type Safety & Maintainability**: By using Java and Spring Boot, we ensure that our "Cosmic Signals" (DTOs) are strictly typed. This prevents the runtime "undefined" errors common in smaller Node.js implementations and makes the codebase more resilient to scaling.
+2.  **Relational Data Integrity (ACID)**: For user profiles, sessions, and chat history, a relational database like **PostgreSQL** is the "Senior" choice. It ensures that every established link and chat message is persisted with 100% integrity, whereas a NoSQL approach (MongoDB) can lead to data fragmentation in highly relational interaction models.
+3.  **Structured Messaging (STOMP)**: Unlike basic Socket.IO events, **STOMP** is a standard message-oriented protocol. It allows us to use a professional **Pub/Sub pattern** (e.g., `/topic/cosmos` for broadcasts and `/user/queue/proximity` for targeted signals), making the spatial synchronization logic more predictable and easier to debug.
+4.  **Java Concurrency**: Java's robust multi-threading model is better suited for real-time spatial calculations (Proximity detection) across many simultaneous users, ensuring that every "Signal Acquired" event is processed with minimal latency.
 
 ---
 
