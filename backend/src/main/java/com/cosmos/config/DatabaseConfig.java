@@ -24,22 +24,29 @@ public class DatabaseConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        System.out.println("--- DATABASE INITIALIZATION (PGSimpleDataSource Mode) ---");
+        System.out.println("--- DATABASE INITIALIZATION (Deep Clean Mode) ---");
         
-        // We will carefully parse the URL if it's provided, or just use properties
-        // For Neon, it's often easier to just use the URL but we bypass Hikari's check
+        // Deep clean: Remove any non-printable or hidden non-ASCII characters (BOM, etc.)
+        String sanitizedUrl = dbUrl.replaceAll("[^\\x20-\\x7e]", "").trim();
+        String sanitizedUser = username.replaceAll("[^\\x20-\\x7e]", "").trim();
+        String sanitizedPass = password.replaceAll("[^\\x20-\\x7e]", "").trim();
+        
+        // Debug: Log the first 10 hex characters to find hidden poisons
+        StringBuilder hex = new StringBuilder();
+        for (int i = 0; i < Math.min(sanitizedUrl.length(), 10); i++) {
+            hex.append(String.format("%02x ", (int) sanitizedUrl.charAt(i)));
+        }
+        System.out.println("URL Hex (First 10): " + hex.toString());
+        System.out.println("Cleaned URL: " + sanitizedUrl);
         
         HikariConfig config = new HikariConfig();
-        
-        // Instead of config.setJdbcUrl(cleanUrl), we use the DataSource class directly
         config.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
         
-        // Sanitize and Add Properties to the DataSource
-        config.addDataSourceProperty("url", dbUrl.trim());
-        config.addDataSourceProperty("user", username.trim());
-        config.addDataSourceProperty("password", password.trim());
+        // Pass sanitized values
+        config.addDataSourceProperty("url", sanitizedUrl);
+        config.addDataSourceProperty("user", sanitizedUser);
+        config.addDataSourceProperty("password", sanitizedPass);
         
-        // Essential for Neon
         config.addDataSourceProperty("sslmode", "require");
         
         // Hikari Specifics
