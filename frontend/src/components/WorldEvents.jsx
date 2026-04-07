@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useCosmosStore } from '../store/cosmosStore'
 
-/**
- * Rotating System Ticker for the header.
- */
 export function StellarTicker() {
   const { users, currentSpaceId } = useCosmosStore()
   const [index, setIndex] = useState(0)
@@ -31,9 +28,6 @@ export function StellarTicker() {
   )
 }
 
-/**
- * Real-time activity feed for social events.
- */
 export function ActivityFeed() {
   const events = useCosmosStore(s => s.events)
 

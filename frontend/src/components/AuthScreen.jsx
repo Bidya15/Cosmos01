@@ -1,12 +1,8 @@
 import React, { useState } from 'react'
 import { useCosmosStore } from '../store/cosmosStore'
 
-/**
- * Authentication & Recovery Terminal.
- * Supports: LOGIN, REGISTER, FORGOT_PWD, RESET_PWD modes.
- */
 export default function AuthScreen() {
-  const [view, setView] = useState('LOGIN') // LOGIN, REGISTER, FORGOT, RESET
+  const [view, setView] = useState('LOGIN')
   const [showPassword, setShowPassword] = useState(false)
   
   const [username, setUsername] = useState('')

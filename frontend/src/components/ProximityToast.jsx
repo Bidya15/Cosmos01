@@ -9,7 +9,6 @@ export default function ProximityToast() {
   useEffect(() => {
     const prev = prevConnectionsRef.current
 
-    // Detect new connections
     for (const uid of connections) {
       if (!prev.has(uid)) {
         const user = users[uid]
@@ -23,7 +22,6 @@ export default function ProximityToast() {
       }
     }
 
-    // Detect disconnections
     for (const uid of prev) {
       if (!connections.has(uid)) {
         const user = users[uid]

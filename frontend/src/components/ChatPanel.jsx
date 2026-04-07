@@ -1,11 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useCosmosStore, getRoomId } from '../store/cosmosStore'
 
-/**
- * The Real-Time Chat HUD.
- * Automatically appears when users enter proximity.
- * Manages multiple "Quantum Links" (conversations) and handles smooth entry/exit animations.
- */
 export default function ChatPanel() {
   const {
     localUser,
@@ -23,7 +18,6 @@ export default function ChatPanel() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
-  // 1. MANAGE VISIBILITY: Handle smooth entrance/exit based on proximity connections or Global channel activity
   useEffect(() => {
     if (connections.size > 0 || Object.keys(chatRooms).length > 0) {
       setIsVisible(true)
@@ -33,12 +27,10 @@ export default function ChatPanel() {
     }
   }, [connections.size, chatRooms])
 
-  // 2. AUTO-FOCUS & SCROLL: UX helpers for active messaging
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [activeChatRoom, chatRooms[activeChatRoom]?.messages])
 
-  // 3. AUTO-SELECT: Ensure at least one room is active if connections exist
   useEffect(() => {
     if (!activeChatRoom) {
       if (chatRooms['GLOBAL']) {
@@ -50,20 +42,15 @@ export default function ChatPanel() {
     }
   }, [connections, activeChatRoom, chatRooms])
 
-  // --- DERIVED STATE ---
   const connectedUsers = [...connections].map(id => users[id]).filter(Boolean)
   const activeRoom = activeChatRoom ? chatRooms[activeChatRoom] : null
   const isGlobalActive = activeChatRoom === 'GLOBAL'
   const otherUserId = isGlobalActive ? null : activeRoom?.participants?.find(id => id !== localUser?.id)
   const otherUser = otherUserId ? users[otherUserId] : null
   
-  // Available tabs: Global + Connection-based rooms
   const availableRooms = Object.keys(chatRooms).filter(rid => rid === 'GLOBAL' || connections.has(rid.split('__').find(id => id !== localUser?.id)))
   if (chatRooms['GLOBAL'] && !availableRooms.includes('GLOBAL')) availableRooms.unshift('GLOBAL')
 
-  /**
-   * Dispatches the current input to both the local store and the remote socket.
-   */
   const handleSendMessage = () => {
     const trimmedInput = input.trim()
     if (!trimmedInput || !activeRoom || !localUser) return
@@ -77,7 +64,6 @@ export default function ChatPanel() {
 
     addMessage(activeRoom.id, message)
 
-    // Publish to the synchronization layer
     const socket = useCosmosStore.getState().socket
     if (socket?.publish) {
       socket.publish('CHAT', {
@@ -97,7 +83,6 @@ export default function ChatPanel() {
   return (
     <div className={`absolute right-4 bottom-4 w-80 flex flex-col gap-2 pointer-events-auto ${connections.size > 0 ? 'chat-enter' : 'chat-exit'}`}>
       
-      {/* 1. CHANNEL TABS (Quantum Links) */}
       {(connectedUsers.length > 0 || chatRooms['GLOBAL']) && (
         <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
           {chatRooms['GLOBAL'] && (
@@ -138,7 +123,6 @@ export default function ChatPanel() {
         </div>
       )}
 
-      {/* 2. CHAT WINDOW (Quantum Sync Interface) */}
       {activeRoom && (
         <div
           className="flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300"
@@ -150,7 +134,6 @@ export default function ChatPanel() {
             maxHeight: '380px',
           }}
         >
-          {/* Header Section */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               {isGlobalActive ? (
@@ -173,7 +156,6 @@ export default function ChatPanel() {
             <button onClick={closeChatRoom} className="text-white/40 hover:text-white/80 transition-colors">✕</button>
           </div>
 
-          {/* Messages Feed */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scrollbar" style={{ minHeight: 180, maxHeight: 240 }}>
             {activeRoom.messages.length === 0 ? (
               <div className="text-center py-8 opacity-40">
@@ -213,7 +195,6 @@ export default function ChatPanel() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Section */}
           <div className="px-3 py-3 border-t border-white/10 flex gap-2">
             <input
               ref={inputRef}

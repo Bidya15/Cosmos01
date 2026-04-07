@@ -21,7 +21,6 @@ export default function JoinScreen() {
     if (!selectedSpace || !user) return
     setIsConnecting(true)
     
-    // Artificial delay for premium feel
     setTimeout(() => {
       joinCosmos(selectedSpace)
     }, 800)
@@ -31,14 +30,12 @@ export default function JoinScreen() {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-cosmos-space p-6 overflow-y-auto">
-      {/* Background Decor */}
       <div className="absolute inset-0 pointer-events-none opacity-20">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-600 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative w-full max-w-xl">
-        {/* Profile Header */}
         <div className="flex items-center gap-4 mb-10 sm:px-4">
           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-blue-600/20 border border-blue-400/30 text-blue-400 font-display text-xl"
                style={{ textShadow: '0 0 10px rgba(96, 165, 250, 0.5)' }}>
@@ -50,7 +47,6 @@ export default function JoinScreen() {
           </div>
         </div>
 
-        {/* Space Selection Card */}
         <div 
           className="relative p-8 sm:p-10"
           style={{

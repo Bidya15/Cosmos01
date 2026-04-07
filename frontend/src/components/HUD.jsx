@@ -24,14 +24,12 @@ function Minimap() {
       backdropFilter: 'blur(10px)',
       clipPath: 'polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%)',
     }}>
-      {/* Grid */}
       <div className="absolute inset-0 opacity-20"
         style={{
           backgroundImage: 'linear-gradient(#1a2d54 1px, transparent 1px), linear-gradient(90deg, #1a2d54 1px, transparent 1px)',
           backgroundSize: `${80 * scaleX}px ${80 * scaleY}px`,
         }} />
 
-      {/* Remote users */}
       {Object.values(users).map(user => (
         <div
           key={user.id}
@@ -46,7 +44,6 @@ function Minimap() {
         />
       ))}
 
-      {/* Local user */}
       <div
         className="absolute w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2"
         style={{
@@ -58,7 +55,6 @@ function Minimap() {
         }}
       />
 
-      {/* Minimap label */}
       <div className="absolute bottom-1 right-2 font-display text-xs text-cosmos-dust/40 tracking-wider">
         MAP
       </div>
@@ -109,10 +105,8 @@ export default function HUD() {
 
   return (
     <>
-      {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3 pointer-events-none"
         style={{ background: 'linear-gradient(to bottom, rgba(5,8,17,0.9), transparent)' }}>
-        {/* Left: Logo & status */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"
@@ -124,7 +118,6 @@ export default function HUD() {
           </div>
         </div>
 
-        {/* Center: Stats & Ticker */}
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-6">
             <Stat label="USERS" value={totalUsers} />
@@ -134,7 +127,6 @@ export default function HUD() {
           <Stat label="POS" value={`${Math.round(localUser.x)}, ${Math.round(localUser.y)}`} mono />
         </div>
 
-        {/* Right: User info & Logout */}
         <div className="flex items-center gap-4 pointer-events-auto">
           <div className="flex flex-col items-end gap-1">
             <div className="flex items-center gap-2">
@@ -145,7 +137,6 @@ export default function HUD() {
               </span>
             </div>
             
-            {/* Reaction Bar */}
             <div className="flex gap-1.5 px-2 py-1 bg-slate-900/40 border border-white/5 backdrop-blur-md" 
                  style={{ clipPath: 'polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%)' }}>
               {['✨', '🔥', '🚀', '💎', '👽'].map(emoji => (
@@ -170,7 +161,6 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* Bottom-left: Controls, Minimap & Activity Feed */}
       <div className="absolute left-4 bottom-4 flex flex-col gap-4 pointer-events-none max-w-[240px]">
         <ActivityFeed />
         {showMinimap && <Minimap />}
@@ -182,7 +172,6 @@ export default function HUD() {
         )}
       </div>
 
-      {/* Connection badges */}
       {connectedCount > 0 && (
         <div className="absolute top-16 right-4 flex flex-col gap-1.5 pointer-events-none">
           <div className="font-display text-xs tracking-widest text-cosmos-aurora/60 text-right mb-1">

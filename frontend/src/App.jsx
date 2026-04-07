@@ -11,7 +11,6 @@ import AuthScreen from './components/AuthScreen'
 function CosmosApp() {
   const localUser = useCosmosStore(s => s.localUser)
 
-  // Real-time synchronization (includes proximity events)
   useSocket(localUser)
 
   return (
