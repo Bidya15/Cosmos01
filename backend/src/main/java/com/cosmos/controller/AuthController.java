@@ -13,6 +13,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(originPatterns = "${cosmos.websocket.allowed-origins}")
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {

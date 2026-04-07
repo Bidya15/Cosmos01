@@ -11,6 +11,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cosmos")
+@CrossOrigin(originPatterns = "${cosmos.websocket.allowed-origins}")
 @RequiredArgsConstructor
 public class CosmosController {
 
