@@ -26,12 +26,10 @@ public class DatabaseConfig {
     public DataSource dataSource() {
         System.out.println("--- DATABASE INITIALIZATION (Deep Clean Mode) ---");
         
-        // Deep clean: Remove any non-printable or hidden non-ASCII characters (BOM, etc.)
         String sanitizedUrl = dbUrl.replaceAll("[^\\x20-\\x7e]", "").trim();
         String sanitizedUser = username.replaceAll("[^\\x20-\\x7e]", "").trim();
         String sanitizedPass = password.replaceAll("[^\\x20-\\x7e]", "").trim();
         
-        // Debug: Log the first 10 hex characters to find hidden poisons
         StringBuilder hex = new StringBuilder();
         for (int i = 0; i < Math.min(sanitizedUrl.length(), 10); i++) {
             hex.append(String.format("%02x ", (int) sanitizedUrl.charAt(i)));
@@ -39,10 +37,7 @@ public class DatabaseConfig {
         System.out.println("URL Hex (First 10): " + hex.toString());
         String finalUrl = sanitizedUrl;
         if (sanitizedUrl.contains("@")) {
-            // Handle jdbc:postgresql://user:pass@host/db -> jdbc:postgresql://host/db
             String[] parts = sanitizedUrl.split("@");
-            // The part after @ is the clean host/db info
-            // Ensure we don't lose the jdbc:postgresql:// prefix
             String prefix = "jdbc:postgresql://";
             finalUrl = prefix + parts[1];
             System.out.println("Stripped inline credentials from URL for driver compatibility.");
@@ -51,7 +46,6 @@ public class DatabaseConfig {
         HikariConfig config = new HikariConfig();
         config.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
         
-        // Pass sanitized values
         config.addDataSourceProperty("url", finalUrl);
         config.addDataSourceProperty("user", sanitizedUser);
         config.addDataSourceProperty("password", sanitizedPass);
@@ -59,7 +53,6 @@ public class DatabaseConfig {
         String sslMode = (finalUrl.contains("localhost") || finalUrl.contains("127.0.0.1")) ? "prefer" : "require";
         config.addDataSourceProperty("sslmode", sslMode);
         
-        // Hikari Specifics
         config.setConnectionTimeout(30000);
         config.setMaxLifetime(1800000);
         config.setMaximumPoolSize(10);
@@ -70,7 +63,6 @@ public class DatabaseConfig {
         
         DataSource ds = new HikariDataSource(config);
         
-        // Immediate connection verification for the developer
         try (java.sql.Connection conn = ds.getConnection()) {
             System.out.println("✅ COSMOS DATABASE CONNECTED SUCCESSFULLY! [Target: " + debugUrl + "]");
         } catch (Exception e) {

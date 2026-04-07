@@ -1,8 +1,3 @@
-/**
- * Cosmos — Central Configuration
- * Contains all "Magic Numbers" and UI/Logic constants
- */
-
 export const WORLD_CONFIG = {
   WIDTH: 2400,
   HEIGHT: 1800,
@@ -14,8 +9,8 @@ export const WORLD_CONFIG = {
 export const AVATAR_CONFIG = {
   RADIUS: 24,
   MOVE_SPEED: 3.5,
-  THROTTLE_MS: 40,      // Position sync throttle
-  LERP_ALPHA: 0.15,     // Interpolation smoothness
+  THROTTLE_MS: 40,
+  LERP_ALPHA: 0.15,
   PROXIMITY_RADIUS: 150,
 }
 
@@ -35,4 +30,3 @@ export const COLORS_ARRAY = [
 
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 export const WS_BASE = import.meta.env.VITE_WS_BASE_URL || 'http://localhost:8080'
-

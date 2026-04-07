@@ -22,19 +22,13 @@ public class CosmosController {
         return ResponseEntity.ok(cosmosService.getOnlineUsers());
     }
 
-    /**
-     * GET /api/cosmos/spaces
-     * Returns list of available virtual spaces (offices)
-     */
+
     @GetMapping("/spaces")
     public ResponseEntity<List<SpaceDTO>> getSpaces() {
         return ResponseEntity.ok(cosmosService.getAvailableSpaces());
     }
 
-    /**
-     * GET /api/cosmos/health
-     * Health check endpoint
-     */
+
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         List<UserDTO> users = cosmosService.getOnlineUsers();

@@ -9,10 +9,7 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.util.Map;
 
-/**
- * Extracts userId from query params during WebSocket handshake
- * so it's available in session attributes for all subsequent messages.
- */
+
 @Component
 @Slf4j
 public class CosmosHandshakeInterceptor implements HandshakeInterceptor {

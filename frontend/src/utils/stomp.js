@@ -1,12 +1,9 @@
-// STOMP over SockJS — connects to Spring Boot backend
-
 let stompClient = null
 let connected = false
 const pendingSubscriptions = []
 const pendingPublishes = []
 
 export async function createSocket(serverUrl = 'http://localhost:8080') {
-  // Dynamically import SockJS + STOMP to keep bundle clean
   const SockJS = (await import('sockjs-client')).default
   const { Client } = await import('@stomp/stompjs')
 
@@ -20,11 +17,9 @@ export async function createSocket(serverUrl = 'http://localhost:8080') {
 
   stompClient.onConnect = () => {
     connected = true
-    // Drain pending subscriptions
     pendingSubscriptions.forEach(fn => fn())
     pendingSubscriptions.length = 0
 
-    // Drain pending publishes
     pendingPublishes.forEach(fn => fn())
     pendingPublishes.length = 0
 
@@ -61,7 +56,7 @@ export function subscribe(destination, callback) {
         })
       } catch (err) {
         console.warn(`[STOMP] Subscription to ${destination} failed, retrying...`, err.message)
-        setTimeout(doSub, 150) // Retry after a short delay
+        setTimeout(doSub, 150)
       }
     } else {
       pendingSubscriptions.push(doSub)
@@ -71,10 +66,6 @@ export function subscribe(destination, callback) {
   doSub()
 }
 
-/**
- * Publishes a message to the server.
- * Includes a safety buffer to queue messages if the connection is still establishing.
- */
 export function publish(destination, payload) {
   const doPub = () => {
     if (stompClient && stompClient.connected) {
@@ -100,14 +91,12 @@ export function disconnectSocket() {
 }
 
 export const Topics = {
-  // Subscribe
   COSMOS_BROADCAST: '/topic/cosmos',
   MY_ROOM_STATE: '/user/queue/room-state',
   MY_CHAT: '/user/queue/chat',
   MY_CHAT_HISTORY: '/user/queue/chat-history',
   MY_PROXIMITY: '/user/queue/proximity',
 
-  // Publish
   JOIN: '/app/cosmos/join',
   MOVE: '/app/cosmos/move',
   CHAT: '/app/cosmos/chat',

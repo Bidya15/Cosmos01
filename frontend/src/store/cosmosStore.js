@@ -4,9 +4,6 @@ import { AVATAR_CONFIG, COLORS_ARRAY, API_BASE } from '../config'
 
 const STORAGE_KEY = 'cosmos_session'
 
-/**
- * Recovers authenticated user session from local storage.
- */
 const getInitialState = () => {
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved) {
@@ -20,31 +17,23 @@ const getInitialState = () => {
   return { user: null, token: null }
 }
 
-/**
- * State store for the Cosmos application.
- * Manages authentication, spatial awareness, and real-time chat state.
- */
 export const useCosmosStore = create((set, get) => ({
-  // --- AUTH & PERSISTENCE ---
   ...getInitialState(),
   localUser: null,
   isJoined: false,
   currentSpaceId: null,
 
-  // --- ENVIRONMENT STATE ---
   spaces: [],
-  users: {},           // All active users in the current space
-  connections: new Set(), // Set of userIds currently in proximity
-  chatRooms: {},       // roomId -> { participants, messages }
+  users: {},
+  connections: new Set(),
+  chatRooms: {},
   activeChatRoom: null,
 
-  // --- UI STATE ---
   showMinimap: true,
   showControls: true,
-  events: [],          // Global activity log
+  events: [],
   socket: null,
 
-  // 1. AUTH ACTIONS
   setAuth: (user, token) => {
     set({ user, token })
     if (user) {
@@ -97,7 +86,6 @@ export const useCosmosStore = create((set, get) => ({
     set({ isJoined: false, localUser: null, currentSpaceId: null, users: {}, connections: new Set() })
   },
 
-  // 2. WORLD ACTIONS
   fetchSpaces: async () => {
     try {
       const res = await axios.get(`${API_BASE}/cosmos/spaces`)
@@ -111,11 +99,9 @@ export const useCosmosStore = create((set, get) => ({
     const { user } = get()
     if (!user) return
 
-    // Ensure we have a valid ID for tracking (Fallback to timestamp if missing)
     const userId = user.id || `local_${Date.now()}`
     const userName = user.username || 'Explorer'
 
-    // Initialize the local reactive user with a random theme
     const colorIndex = Math.floor(Math.random() * COLORS_ARRAY.length)
     const localUser = {
       id: userId,
@@ -153,7 +139,6 @@ export const useCosmosStore = create((set, get) => ({
     })
   },
 
-  // 3. PROXIMITY & CHAT ACTIONS
   addConnection: (userId) => {
     set((state) => {
       const connections = new Set(state.connections)
@@ -167,7 +152,6 @@ export const useCosmosStore = create((set, get) => ({
       const connections = new Set(state.connections)
       connections.delete(userId)
       
-      // Auto-cleanup chat room if the proximity link is broken (Skip if it's the GLOBAL room)
       const roomId = getRoomId(state.localUser?.id, userId)
       const chatRooms = { ...state.chatRooms }
       
@@ -234,7 +218,6 @@ export const useCosmosStore = create((set, get) => ({
     }
   },
 
-  // 4. UTILITY ACTIONS
   setSocket: (socket) => set({ socket }),
   setShowMinimap: (v) => set({ showMinimap: v }),
   setShowControls: (v) => set({ showControls: v }),
@@ -253,9 +236,6 @@ export const useCosmosStore = create((set, get) => ({
   },
 }))
 
-/**
- * Computes a deterministic room ID for two users.
- */
 export function getRoomId(uid1, uid2) {
   if (!uid1 || !uid2) return null
   return [uid1, uid2].sort().join('__')

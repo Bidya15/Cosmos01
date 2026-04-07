@@ -4,12 +4,6 @@ import { createSocket, subscribe, publish, disconnectSocket, Topics } from '../u
 import { detectProximityChanges } from '../utils/proximity'
 import { AVATAR_CONFIG, WS_BASE } from '../config'
 
-/**
- * Specialized socket hook for managing the real-time communication lifecycle.
- * Handles USER_JOIN, POSITION_UPDATE, and PROXIMITY_ENTER/LEAVE events.
- * 
- * @param {Object} localUser The local reactive user object
- */
 export function useSocket(localUser) {
   const {
     setSocket, upsertUser, removeUser,
@@ -22,7 +16,6 @@ export function useSocket(localUser) {
   const connectionsRef = useRef(connections)
   const initializedRef = useRef(false)
 
-  // Keep refs in sync for use in event handlers (avoiding stale closures)
   useEffect(() => { localUserRef.current = localUser }, [localUser])
   useEffect(() => { usersRef.current = users }, [users])
   useEffect(() => { connectionsRef.current = connections }, [connections])
@@ -39,14 +32,12 @@ export function useSocket(localUser) {
       const onConnected = () => {
         const spaceTopic = `${Topics.COSMOS_BROADCAST}/${localUserRef.current.spaceId}`
         
-        // --- SUBSCRIBE TO SYSTEM TOPICS ---
         subscribe(spaceTopic, handleBroadcast)
         subscribe(Topics.MY_ROOM_STATE, handleRoomState)
         subscribe(Topics.MY_CHAT, handleChat)
         subscribe(Topics.MY_CHAT_HISTORY, handleChatHistory)
         subscribe(Topics.MY_PROXIMITY, handleProximity)
 
-        // --- ANNOUNCE ENTRANCE ---
         publish(Topics.JOIN, {
           id: localUserRef.current.id,
           spaceId: localUserRef.current.spaceId,
@@ -70,9 +61,6 @@ export function useSocket(localUser) {
     }
   }, [localUser?.id])
 
-  /**
-   * Orchestrates space-wide broadcasts (Join, Leave, Move)
-   */
   function handleBroadcast(envelope) {
     const { type, payload } = envelope
     const local = localUserRef.current
@@ -91,14 +79,12 @@ export function useSocket(localUser) {
         break
       case 'POSITION_UPDATE':
         if (payload.userId === local?.id) return
-        // Guard against updating users that haven't registered in the store yet
         if (usersRef.current[payload.userId]) {
           upsertUser({ id: payload.userId, x: payload.x, y: payload.y })
         }
         checkProximity(payload.userId, payload.x, payload.y)
         break
       case 'USER_REACTION':
-        // Trigger visual effect in the renderer (we'll use a custom event or store flag)
         window.dispatchEvent(new CustomEvent('cosmos:reaction', { detail: payload }))
         
         const reactor = usersRef.current[payload.userId] || (payload.userId === local?.id ? local : null)
@@ -134,9 +120,6 @@ export function useSocket(localUser) {
     }
   }
 
-  /**
-   * Handles server-side proximity detections (Automated connection management)
-   */
   function handleProximity(envelope) {
     const { type, payload } = envelope
     if (!localUserRef.current) return
@@ -149,14 +132,10 @@ export function useSocket(localUser) {
     }
   }
 
-  /**
-   * Supplemental client-side proximity check for immediate visual feedback.
-   */
   function checkProximity(movedUserId, newX, newY) {
     const local = localUserRef.current
     if (!local) return
     
-    // Virtual state update for calculation
     const tempUsers = { 
       ...usersRef.current, 
       [movedUserId]: { ...usersRef.current[movedUserId], x: newX, y: newY } 

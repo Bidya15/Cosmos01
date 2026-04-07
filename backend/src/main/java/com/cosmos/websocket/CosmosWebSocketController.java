@@ -19,10 +19,7 @@ public class CosmosWebSocketController {
 
     private final CosmosService cosmosService;
 
-    /**
-     * Client sends: /app/cosmos/join
-     * Payload: { id, username, color, x, y }
-     */
+
     @MessageMapping("/cosmos/join")
     public void handleJoin(@Payload JoinPayload payload,
                            SimpMessageHeaderAccessor headerAccessor,
@@ -34,11 +31,7 @@ public class CosmosWebSocketController {
         cosmosService.handleJoin(payload, principalName);
     }
 
-    /**
-     * Client sends: /app/cosmos/move
-     * Payload: { x, y }
-     * Header must include userId
-     */
+
     @MessageMapping("/cosmos/move")
     public void handleMove(@Payload MovePayload payload,
                            SimpMessageHeaderAccessor headerAccessor) {
@@ -57,10 +50,7 @@ public class CosmosWebSocketController {
         }
     }
 
-    /**
-     * Client sends: /app/cosmos/reaction
-     * Payload: { emoji, timestamp }
-     */
+
     @MessageMapping("/cosmos/reaction")
     public void handleReaction(@Payload ReactionPayload payload,
                                SimpMessageHeaderAccessor headerAccessor) {
@@ -70,9 +60,6 @@ public class CosmosWebSocketController {
         }
     }
 
-    /**
-     * Client sends: /app/cosmos/leave
-     */
     @MessageMapping("/cosmos/leave")
     public void handleLeave(SimpMessageHeaderAccessor headerAccessor, 
                             java.security.Principal principal) {
@@ -80,9 +67,7 @@ public class CosmosWebSocketController {
         cosmosService.handleLeave(principalName);
     }
 
-    /**
-     * Handles WebSocket disconnection events (browser close, network loss, etc.)
-     */
+
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
         java.security.Principal principal = event.getUser();

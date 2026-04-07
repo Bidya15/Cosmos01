@@ -9,11 +9,7 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Custom handshake handler to assign a unique Principal to every WebSocket session.
- * This is critical for Spring STOMP's convertAndSendToUser function to work 
- * in anonymous/multi-tab environments.
- */
+
 public class CosmosHandshakeHandler extends DefaultHandshakeHandler {
 
     @Override

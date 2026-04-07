@@ -19,10 +19,7 @@ import java.util.*;
 
 import static com.cosmos.utils.CosmosUtils.*;
 
-/**
- * Core business service for the Cosmos platform.
- * Orchestrates user entrance, real-time spatial movement, and proximity-driven interaction.
- */
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -40,12 +37,7 @@ public class CosmosService {
     @Value("${cosmos.world.height:1800}")
     private int worldHeight;
 
-    // ========== JOIN / ENTRANCE ==========
 
-    /**
-     * Processes a new user's entrance into a virtual space.
-     * Synchronizes state with database and notifies existing users.
-     */
     @Transactional
     public void handleJoin(JoinPayload payload, String principalName) {
         if (payload == null || payload.getId() == null || principalName == null) {
@@ -154,10 +146,7 @@ public class CosmosService {
 
     // ========== MOVE / SYNC ==========
 
-    /**
-     * Updates user coordinates and recalculates the proximity graph.
-     * Enforces world boundaries and broadcasts updates at a regular cadence.
-     */
+
     public void handleMove(String userId, MovePayload payload) {
         if (!userStateStore.isUserActive(userId)) return;
 
@@ -194,12 +183,7 @@ public class CosmosService {
         userSessionRepository.updatePosition(userId, x, y, Instant.now());
     }
 
-    // ========== CHAT / INTERACTION ==========
 
-    /**
-     * Delivers real-time chat messages between users.
-     * ⚠️ SECURITY: Message delivery is blocked if the users are not within proximity range.
-     */
     @Transactional
     public void handleChat(String fromUserId, ChatPayload payload) {
         if (!userStateStore.isUserActive(fromUserId) || payload.getMessage() == null) return;
@@ -262,9 +246,7 @@ public class CosmosService {
 
     // ========== LEAVE / EXIT ==========
 
-    /**
-     * Gracefully cleans up user state and notifies the environment of departure.
-     */
+
     @Transactional
     public void handleLeave(String principalName) {
         userStateStore.getUserIdBySession(principalName).ifPresent(userId -> {
@@ -297,9 +279,7 @@ public class CosmosService {
                 .build()).collect(java.util.stream.Collectors.toList());
     }
 
-    /**
-     * Broadcasts a social reaction (emoji) to all users in the same space.
-     */
+
     public void handleReaction(String userId, ReactionPayload payload) {
         if (!userStateStore.isUserActive(userId) || payload.getEmoji() == null) return;
         
