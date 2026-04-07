@@ -55,7 +55,22 @@ npm run dev
 # ✅ Local development at http://localhost:5173
 ```
 
-### 3. Verification Protocol
+### 3. Deploy to Production (Render.com)
+
+#### **Backend (Web Service)**
+- **Runtime**: Java
+- **Build Command**: `mvn clean package -DskipTests`
+- **Start Command**: `java -jar backend/target/cosmos-0.0.1-SNAPSHOT.jar`
+- **Env Vars**: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
+
+#### **Frontend (Static Site)**
+- **Build Command**: `npm run build`
+- **Publish Directory**: `dist`
+- **Env Vars**: 
+    - `VITE_API_BASE_URL`: Your backend URL + `/api`
+    - `VITE_WS_BASE_URL`: Your backend URL + `/ws`
+
+### 4. Verification Protocol
 1. Open **two browser tabs** at `http://localhost:5173`.
 2. Register two unique identities.
 3. Move close to each other to trigger the **Signal Acquired** notification.
