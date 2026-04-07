@@ -22,6 +22,7 @@ public class AuthController {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 
+    // Create a new cosmic identity for the user
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -31,6 +32,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Username already taken");
         }
 
+        // Assign a random vibrant color to the new user for their avatar
         String[] colors = {"#3b82f6", "#06b6d4", "#818cf8", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#f97316", "#14b8a6", "#e879f9"};
         String randomColor = colors[new java.util.Random().nextInt(colors.length)];
 
@@ -53,6 +55,7 @@ public class AuthController {
                 .build());
     }
 
+    // Authenticate and establish a session for an existing user
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         return userRepository.findByEmail(request.getEmail())
@@ -67,6 +70,7 @@ public class AuthController {
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
+    // Initiate password recovery process
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         return userRepository.findByEmail(request.getEmail())
@@ -77,6 +81,7 @@ public class AuthController {
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Signal ID not found."));
     }
 
+    // Securely update the user's password protocol
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         return userRepository.findByEmail(request.getEmail())

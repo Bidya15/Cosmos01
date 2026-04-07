@@ -17,18 +17,21 @@ public class CosmosController {
 
     private final CosmosService cosmosService;
 
+    // Retrieve a list of all users currently navigating the shared office spaces
     @GetMapping("/users")
     public ResponseEntity<List<UserDTO>> getOnlineUsers() {
         return ResponseEntity.ok(cosmosService.getOnlineUsers());
     }
 
 
+    // Fetch all available environments that users can jump into
     @GetMapping("/spaces")
     public ResponseEntity<List<SpaceDTO>> getSpaces() {
         return ResponseEntity.ok(cosmosService.getAvailableSpaces());
     }
 
 
+    // Simple diagnostic check to ensure the backend is connected and responsive
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         List<UserDTO> users = cosmosService.getOnlineUsers();

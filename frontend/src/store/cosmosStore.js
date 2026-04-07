@@ -4,13 +4,14 @@ import { AVATAR_CONFIG, COLORS_ARRAY, API_BASE } from '../config'
 
 const STORAGE_KEY = 'cosmos_session'
 
+// Helper to load authentication state from local storage on initialization
 const getInitialState = () => {
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved) {
     try {
       const data = JSON.parse(saved)
       return { user: data.user, token: data.token }
-    } catch (e) {
+    } catch (error) {
       localStorage.removeItem(STORAGE_KEY)
     }
   }
@@ -34,6 +35,7 @@ export const useCosmosStore = create((set, get) => ({
   events: [],
   socket: null,
 
+  // Persist auth state to storage
   setAuth: (user, token) => {
     set({ user, token })
     if (user) {
@@ -45,21 +47,21 @@ export const useCosmosStore = create((set, get) => ({
 
   login: async (email, password) => {
     try {
-      const res = await axios.post(`${API_BASE}/auth/login`, { email, password })
-      get().setAuth(res.data, res.data.token)
+      const response = await axios.post(`${API_BASE}/auth/login`, { email, password })
+      get().setAuth(response.data, response.data.token)
       return { success: true }
-    } catch (e) {
-      return { success: false, error: e.response?.data || 'Login failed' }
+    } catch (error) {
+      return { success: false, error: error.response?.data || 'Login failed' }
     }
   },
 
   register: async (username, email, password) => {
     try {
-      const res = await axios.post(`${API_BASE}/auth/register`, { username, email, password })
-      get().setAuth(res.data, res.data.token)
+      const response = await axios.post(`${API_BASE}/auth/register`, { username, email, password })
+      get().setAuth(response.data, response.data.token)
       return { success: true }
-    } catch (err) {
-      return { success: false, error: err.response?.data || "Login connection failed" }
+    } catch (error) {
+      return { success: false, error: error.response?.data || "Login connection failed" }
     }
   },
 
@@ -67,17 +69,17 @@ export const useCosmosStore = create((set, get) => ({
     try {
       await axios.post(`${API_BASE}/auth/forgot-password`, { email })
       return { success: true }
-    } catch (err) {
-      return { success: false, error: err.response?.data || "Email verification failed" }
+    } catch (error) {
+      return { success: false, error: error.response?.data || "Email verification failed" }
     }
   },
 
   resetPassword: async (email, newPassword) => {
     try {
-      const res = await axios.post(`${API_BASE}/auth/reset-password`, { email, newPassword })
-      return { success: true, message: res.data }
-    } catch (err) {
-      return { success: false, error: err.response?.data || "Signal reset failed" }
+      const response = await axios.post(`${API_BASE}/auth/reset-password`, { email, newPassword })
+      return { success: true, message: response.data }
+    } catch (error) {
+      return { success: false, error: error.response?.data || "Signal reset failed" }
     }
   },
 
@@ -88,10 +90,10 @@ export const useCosmosStore = create((set, get) => ({
 
   fetchSpaces: async () => {
     try {
-      const res = await axios.get(`${API_BASE}/cosmos/spaces`)
-      set({ spaces: res.data })
-    } catch (e) {
-      console.error('[Store] Failed to fetch spaces:', e)
+      const response = await axios.get(`${API_BASE}/cosmos/spaces`)
+      set({ spaces: response.data })
+    } catch (error) {
+      console.error('[Store] Failed to fetch spaces:', error)
     }
   },
 
@@ -155,6 +157,7 @@ export const useCosmosStore = create((set, get) => ({
       const roomId = getRoomId(state.localUser?.id, userId)
       const chatRooms = { ...state.chatRooms }
       
+      // Clean up private chat rooms when a connection is lost
       if (roomId !== 'GLOBAL') {
         delete chatRooms[roomId]
       }
@@ -205,22 +208,22 @@ export const useCosmosStore = create((set, get) => ({
   },
 
   addHistory: (messages) => {
-    for (const msg of messages) {
-      get().addMessage(msg.roomId, {
-        id: `hist_${msg.timestamp}_${Math.random()}`,
-        senderId: msg.fromUserId,
-        senderUsername: msg.fromUsername,
-        senderColor: msg.color,
-        text: msg.message,
-        timestamp: msg.timestamp,
-        isGlobal: msg.isGlobal
+    for (const messageData of messages) {
+      get().addMessage(messageData.roomId, {
+        id: `hist_${messageData.timestamp}_${Math.random()}`,
+        senderId: messageData.fromUserId,
+        senderUsername: messageData.fromUsername,
+        senderColor: messageData.color,
+        text: messageData.message,
+        timestamp: messageData.timestamp,
+        isGlobal: messageData.isGlobal
       })
     }
   },
 
   setSocket: (socket) => set({ socket }),
-  setShowMinimap: (v) => set({ showMinimap: v }),
-  setShowControls: (v) => set({ showControls: v }),
+  setShowMinimap: (visible) => set({ showMinimap: visible }),
+  setShowControls: (visible) => set({ showControls: visible }),
 
   addEvent: (text, type = 'SYSTEM', color = '#06b6d4') => {
     const event = {
@@ -236,7 +239,8 @@ export const useCosmosStore = create((set, get) => ({
   },
 }))
 
-export function getRoomId(uid1, uid2) {
-  if (!uid1 || !uid2) return null
-  return [uid1, uid2].sort().join('__')
+// Generates a consistent room ID for two users
+export function getRoomId(userId1, userId2) {
+  if (!userId1 || !userId2) return null
+  return [userId1, userId2].sort().join('__')
 }

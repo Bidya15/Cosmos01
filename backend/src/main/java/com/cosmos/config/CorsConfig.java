@@ -19,22 +19,25 @@ public class CorsConfig {
             public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
                     throws IOException, ServletException {
                 
-                HttpServletResponse res = (HttpServletResponse) response;
-                HttpServletRequest req = (HttpServletRequest) request;
+                HttpServletResponse httpResponse = (HttpServletResponse) response;
+                HttpServletRequest httpRequest = (HttpServletRequest) request;
  
-                String origin = req.getHeader("Origin");
+                String origin = httpRequest.getHeader("Origin");
                 
-                if (res.getHeader("Access-Control-Allow-Origin") == null) {
-                    res.setHeader("Access-Control-Allow-Origin", origin != null ? origin : "*");
-                    res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
-                    res.setHeader("Access-Control-Max-Age", "3600");
-                    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Requested-With, Origin, Access-Control-Request-Headers, Access-Control-Request-Method");
-                    res.setHeader("Access-Control-Allow-Credentials", "true");
-                    res.setHeader("Access-Control-Expose-Headers", "Authorization");
+                // This is a safety filter that ensures CORS headers are present even if a 
+                // controller or error handler misses them. It avoids duplicate headers.
+                if (httpResponse.getHeader("Access-Control-Allow-Origin") == null) {
+                    httpResponse.setHeader("Access-Control-Allow-Origin", origin != null ? origin : "*");
+                    httpResponse.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
+                    httpResponse.setHeader("Access-Control-Max-Age", "3600");
+                    httpResponse.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Requested-With, Origin, Access-Control-Request-Headers, Access-Control-Request-Method");
+                    httpResponse.setHeader("Access-Control-Allow-Credentials", "true");
+                    httpResponse.setHeader("Access-Control-Expose-Headers", "Authorization");
                 }
  
-                if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {
-                    res.setStatus(HttpServletResponse.SC_OK);
+                // Instantly approve preflight 'OPTIONS' requests to keep the frontend happy
+                if ("OPTIONS".equalsIgnoreCase(httpRequest.getMethod())) {
+                    httpResponse.setStatus(HttpServletResponse.SC_OK);
                     return;
                 }
  

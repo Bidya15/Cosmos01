@@ -15,26 +15,27 @@ export function usePixiRenderer(containerRef) {
   const lastEmitRef = useRef(0)
   const reactionsRef = useRef([])
 
-  const localUser = useCosmosStore(s => s.localUser)
-  const users = useCosmosStore(s => s.users)
-  const connections = useCosmosStore(s => s.connections)
-  const updateLocalPosition = useCosmosStore(s => s.updateLocalPosition)
+  const localUser = useCosmosStore(state => state.localUser)
+  const users = useCosmosStore(state => state.users)
+  const connections = useCosmosStore(state => state.connections)
+  const updateLocalPosition = useCosmosStore(state => state.updateLocalPosition)
 
+  // Builds the visual environment (stars, grid, and atmosphere)
   const buildBackground = useCallback((world) => {
-    const bg = new PIXI.Graphics()
-    bg.beginFill(WORLD_CONFIG.BG_COLOR)
-    bg.drawRect(0, 0, WORLD_CONFIG.WIDTH, WORLD_CONFIG.HEIGHT)
-    bg.endFill()
+    const background = new PIXI.Graphics()
+    background.beginFill(WORLD_CONFIG.BG_COLOR)
+    background.drawRect(0, 0, WORLD_CONFIG.WIDTH, WORLD_CONFIG.HEIGHT)
+    background.endFill()
 
-    bg.lineStyle(1, COLORS.DARK_BLUE, 0.3)
-    for (let x = 0; x <= WORLD_CONFIG.WIDTH; x += WORLD_CONFIG.GRID_SIZE) { bg.moveTo(x, 0); bg.lineTo(x, WORLD_CONFIG.HEIGHT) }
-    for (let y = 0; y <= WORLD_CONFIG.HEIGHT; y += WORLD_CONFIG.GRID_SIZE) { bg.moveTo(0, y); bg.lineTo(WORLD_CONFIG.WIDTH, y) }
+    background.lineStyle(1, COLORS.DARK_BLUE, 0.3)
+    for (let x = 0; x <= WORLD_CONFIG.WIDTH; x += WORLD_CONFIG.GRID_SIZE) { background.moveTo(x, 0); background.lineTo(x, WORLD_CONFIG.HEIGHT) }
+    for (let y = 0; y <= WORLD_CONFIG.HEIGHT; y += WORLD_CONFIG.GRID_SIZE) { background.moveTo(0, y); background.lineTo(WORLD_CONFIG.WIDTH, y) }
 
-    bg.lineStyle(1, COLORS.ACCENT_BLUE, 0.07)
-    for (let x = 0; x <= WORLD_CONFIG.WIDTH; x += WORLD_CONFIG.MAJOR_GRID_SIZE) { bg.moveTo(x, 0); bg.lineTo(x, WORLD_CONFIG.HEIGHT) }
-    for (let y = 0; y <= WORLD_CONFIG.HEIGHT; y += WORLD_CONFIG.MAJOR_GRID_SIZE) { bg.moveTo(0, y); bg.lineTo(WORLD_CONFIG.WIDTH, y) }
+    background.lineStyle(1, COLORS.ACCENT_BLUE, 0.07)
+    for (let x = 0; x <= WORLD_CONFIG.WIDTH; x += WORLD_CONFIG.MAJOR_GRID_SIZE) { background.moveTo(x, 0); background.lineTo(x, WORLD_CONFIG.HEIGHT) }
+    for (let y = 0; y <= WORLD_CONFIG.HEIGHT; y += WORLD_CONFIG.MAJOR_GRID_SIZE) { background.moveTo(0, y); background.lineTo(WORLD_CONFIG.WIDTH, y) }
 
-    world.addChildAt(bg, 0)
+    world.addChildAt(background, 0)
 
     const stars = new PIXI.Graphics()
     for (let i = 0; i < 350; i++) {
@@ -62,6 +63,7 @@ export function usePixiRenderer(containerRef) {
     world.addChild(border)
   }, [])
 
+  // Initialize the WebGL canvas and world container
   useEffect(() => {
     if (!containerRef.current || !localUser) return
 
@@ -93,13 +95,13 @@ export function usePixiRenderer(containerRef) {
       localSpriteRef.current = localSprite
     }
 
-    const onKeyDown = e => { keysRef.current[e.key.toLowerCase()] = true; keysRef.current[e.code?.toLowerCase()] = true }
-    const onKeyUp = e => { keysRef.current[e.key.toLowerCase()] = false; keysRef.current[e.code?.toLowerCase()] = false }
+    const onKeyDown = event => { keysRef.current[event.key.toLowerCase()] = true; keysRef.current[event.code?.toLowerCase()] = true }
+    const onKeyUp = event => { keysRef.current[event.key.toLowerCase()] = false; keysRef.current[event.code?.toLowerCase()] = false }
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
 
-    const onReaction = (e) => {
-      const { userId, emoji } = e.detail
+    const onReaction = (event) => {
+      const { userId, emoji } = event.detail
       const world = worldRef.current
       if (!world) return
       
@@ -123,24 +125,26 @@ export function usePixiRenderer(containerRef) {
     window.addEventListener('resize', onResize)
     onResize()
 
-    let tick = 0
+    let tickCount = 0
     app.ticker.add(() => {
-      tick++
+      tickCount++
       const keys = keysRef.current
       const sprite = localSpriteRef.current
       if (!sprite) return
 
-      let dx = 0, dy = 0
-      if (keys['arrowleft'] || keys['a'] || keys['keya']) dx -= AVATAR_CONFIG.MOVE_SPEED
-      if (keys['arrowright'] || keys['d'] || keys['keyd']) dx += AVATAR_CONFIG.MOVE_SPEED
-      if (keys['arrowup'] || keys['w'] || keys['keyw']) dy -= AVATAR_CONFIG.MOVE_SPEED
-      if (keys['arrowdown'] || keys['s'] || keys['keys']) dy += AVATAR_CONFIG.MOVE_SPEED
+      // Handle local player movement
+      let deltaX = 0, deltaY = 0
+      if (keys['arrowleft'] || keys['a'] || keys['keya']) deltaX -= AVATAR_CONFIG.MOVE_SPEED
+      if (keys['arrowright'] || keys['d'] || keys['keyd']) deltaX += AVATAR_CONFIG.MOVE_SPEED
+      if (keys['arrowup'] || keys['w'] || keys['keyw']) deltaY -= AVATAR_CONFIG.MOVE_SPEED
+      if (keys['arrowdown'] || keys['s'] || keys['keys']) deltaY += AVATAR_CONFIG.MOVE_SPEED
 
-      if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707 }
+      // Normalize diagonal speed
+      if (deltaX !== 0 && deltaY !== 0) { deltaX *= 0.707; deltaY *= 0.707 }
 
-      if (dx !== 0 || dy !== 0) {
-        const newX = Math.max(AVATAR_CONFIG.RADIUS, Math.min(WORLD_CONFIG.WIDTH - AVATAR_CONFIG.RADIUS, sprite.x + dx))
-        const newY = Math.max(AVATAR_CONFIG.RADIUS, Math.min(WORLD_CONFIG.HEIGHT - AVATAR_CONFIG.RADIUS, sprite.y + dy))
+      if (deltaX !== 0 || deltaY !== 0) {
+        const newX = Math.max(AVATAR_CONFIG.RADIUS, Math.min(WORLD_CONFIG.WIDTH - AVATAR_CONFIG.RADIUS, sprite.x + deltaX))
+        const newY = Math.max(AVATAR_CONFIG.RADIUS, Math.min(WORLD_CONFIG.HEIGHT - AVATAR_CONFIG.RADIUS, sprite.y + deltaY))
         sprite.position.set(newX, newY)
         updateLocalPosition(newX, newY)
 
@@ -151,75 +155,81 @@ export function usePixiRenderer(containerRef) {
         }
       }
 
-      for (const [uid, user] of Object.entries(users)) {
-        if (!localUser || uid === localUser.id) continue
-        const remoteSprite = userSpritesRef.current[uid]
+      // Smoothly interpolate remote user positions
+      for (const [userId, user] of Object.entries(users)) {
+        if (!localUser || userId === localUser.id) continue
+        const remoteSprite = userSpritesRef.current[userId]
         if (!remoteSprite) continue
         
         remoteSprite.x += (user.x - remoteSprite.x) * AVATAR_CONFIG.LERP_ALPHA
         remoteSprite.y += (user.y - remoteSprite.y) * AVATAR_CONFIG.LERP_ALPHA
         
-        updateUserSprite(remoteSprite, user, connections.has(uid))
+        updateUserSprite(remoteSprite, user, connections.has(userId))
       }
 
-      const sw = app.renderer.width, sh = app.renderer.height
-      const cx = sw / 2, cy = sh / 2
-      world.x += (cx - sprite.x - world.x) * 0.08
-      world.y += (cy - sprite.y - world.y) * 0.08
+      // Follow local player with a smooth camera delay
+      const screenWidth = app.renderer.width, screenHeight = app.renderer.height
+      const centerX = screenWidth / 2, centerY = screenHeight / 2
+      world.x += (centerX - sprite.x - world.x) * 0.08
+      world.y += (centerY - sprite.y - world.y) * 0.08
 
-      const ring = sprite.getChildByName('proximityRing')
-      if (ring) {
-        ring.clear()
+      // Visual pulse for the proximity indicator
+      const proximityRing = sprite.getChildByName('proximityRing')
+      if (proximityRing) {
+        proximityRing.clear()
         const dashCount = 60, angleStep = (Math.PI * 2) / dashCount
-        const rotationOffset = tick * 0.01
-        ring.lineStyle(2, COLORS.CYAN, 0.15 + Math.sin(tick * 0.05) * 0.05)
+        const rotationOffset = tickCount * 0.01
+        proximityRing.lineStyle(2, COLORS.CYAN, 0.15 + Math.sin(tickCount * 0.05) * 0.05)
         for (let i = 0; i < dashCount; i += 2) {
           const startAngle = i * angleStep + rotationOffset
           const endAngle = (i + 1) * angleStep + rotationOffset
-          ring.arc(0, 0, AVATAR_CONFIG.PROXIMITY_RADIUS, startAngle, endAngle)
+          proximityRing.arc(0, 0, AVATAR_CONFIG.PROXIMITY_RADIUS, startAngle, endAngle)
         }
       }
 
-      const links = linksLayerRef.current
-      if (links) {
-        links.clear()
-        for (const uid of connections) {
-          const other = userSpritesRef.current[uid]
-          if (other) {
-            const user = users[uid]
+      // Draw connection lines between nearby users
+      const linksLayer = linksLayerRef.current
+      if (linksLayer) {
+        linksLayer.clear()
+        for (const connectedUserId of connections) {
+          const remoteSprite = userSpritesRef.current[connectedUserId]
+          if (remoteSprite) {
+            const user = users[connectedUserId]
             const colorInt = safeColorToInt(user?.color, COLORS.BLUE)
-            links.lineStyle(1.5, colorInt, 0.2 + Math.sin(tick * 0.08) * 0.1)
-            links.moveTo(sprite.x, sprite.y)
-            links.lineTo(other.x, other.y)
+            linksLayer.lineStyle(1.5, colorInt, 0.2 + Math.sin(tickCount * 0.08) * 0.1)
+            linksLayer.moveTo(sprite.x, sprite.y)
+            linksLayer.lineTo(remoteSprite.x, remoteSprite.y)
           }
         }
       }
 
-      const glow = sprite.getChildByName('glow')
-      if (glow) {
-        glow.alpha = 0.18 + Math.sin(tick * 0.04) * 0.1
-        glow.scale.set(1 + Math.sin(tick * 0.03) * 0.05)
+      // Animate atmospheric glow
+      const glowEffect = sprite.getChildByName('glow')
+      if (glowEffect) {
+        glowEffect.alpha = 0.18 + Math.sin(tickCount * 0.04) * 0.1
+        glowEffect.scale.set(1 + Math.sin(tickCount * 0.03) * 0.05)
       }
 
+      // Manage floating reactions lifecycle
       const now = Date.now()
-      reactionsRef.current = reactionsRef.current.filter(r => {
-        const elapsed = now - r.startTime
-        const life = 1000
-        if (elapsed > life) {
-          world.removeChild(r.sprite)
+      reactionsRef.current = reactionsRef.current.filter(reaction => {
+        const elapsed = now - reaction.startTime
+        const lifetime = 1000
+        if (elapsed > lifetime) {
+          world.removeChild(reaction.sprite)
           return false
         }
 
-        const progress = elapsed / life
-        const targetSprite = r.userId === localUser.id ? localSpriteRef.current : userSpritesRef.current[r.userId]
+        const progress = elapsed / lifetime
+        const targetSprite = reaction.userId === localUser.id ? localSpriteRef.current : userSpritesRef.current[reaction.userId]
         
         if (targetSprite) {
-          r.sprite.x = targetSprite.x
-          r.sprite.y = targetSprite.y - AVATAR_CONFIG.RADIUS - 20 - (progress * 40)
+          reaction.sprite.x = targetSprite.x
+          reaction.sprite.y = targetSprite.y - AVATAR_CONFIG.RADIUS - 20 - (progress * 40)
         }
         
-        r.sprite.alpha = 1 - progress
-        r.sprite.scale.set(0.8 + Math.sin(progress * Math.PI) * 0.4)
+        reaction.sprite.alpha = 1 - progress
+        reaction.sprite.scale.set(0.8 + Math.sin(progress * Math.PI) * 0.4)
         return true
       })
     })
@@ -233,33 +243,34 @@ export function usePixiRenderer(containerRef) {
     }
   }, [localUser?.id])
 
+  // Sync remote user list whenever the store updates
   useEffect(() => {
     const world = worldRef.current
     if (!world || !localUser) return
 
     const currentIds = new Set(Object.keys(users))
 
-    for (const uid of Object.keys(userSpritesRef.current)) {
-      if (!currentIds.has(uid)) {
-        world.removeChild(userSpritesRef.current[uid])
-        delete userSpritesRef.current[uid]
+    for (const userId of Object.keys(userSpritesRef.current)) {
+      if (!currentIds.has(userId)) {
+        world.removeChild(userSpritesRef.current[userId])
+        delete userSpritesRef.current[userId]
       }
     }
 
-    for (const [uid, user] of Object.entries(users)) {
-      if (uid !== localUser.id && !userSpritesRef.current[uid]) {
+    for (const [userId, user] of Object.entries(users)) {
+      if (userId !== localUser.id && !userSpritesRef.current[userId]) {
         const sprite = createUserSprite(user)
         if (sprite) {
           world.addChild(sprite)
-          userSpritesRef.current[uid] = sprite
+          userSpritesRef.current[userId] = sprite
         }
       }
     }
 
-    for (const [uid, user] of Object.entries(users)) {
-      if (uid === localUser.id) continue
-      const sprite = userSpritesRef.current[uid]
-      if (sprite) updateUserSprite(sprite, user, connections.has(uid))
+    for (const [userId, user] of Object.entries(users)) {
+      if (userId === localUser.id) continue
+      const sprite = userSpritesRef.current[userId]
+      if (sprite) updateUserSprite(sprite, user, connections.has(userId))
     }
   }, [users, connections, localUser])
 
