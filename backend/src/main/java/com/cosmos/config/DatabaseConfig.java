@@ -37,17 +37,26 @@ public class DatabaseConfig {
             hex.append(String.format("%02x ", (int) sanitizedUrl.charAt(i)));
         }
         System.out.println("URL Hex (First 10): " + hex.toString());
-        System.out.println("Cleaned URL: " + sanitizedUrl);
+        String finalUrl = sanitizedUrl;
+        if (sanitizedUrl.contains("@")) {
+            // Handle jdbc:postgresql://user:pass@host/db -> jdbc:postgresql://host/db
+            String[] parts = sanitizedUrl.split("@");
+            // The part after @ is the clean host/db info
+            // Ensure we don't lose the jdbc:postgresql:// prefix
+            String prefix = "jdbc:postgresql://";
+            finalUrl = prefix + parts[1];
+            System.out.println("Stripped inline credentials from URL for driver compatibility.");
+        }
         
         HikariConfig config = new HikariConfig();
         config.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
         
         // Pass sanitized values
-        config.addDataSourceProperty("url", sanitizedUrl);
+        config.addDataSourceProperty("url", finalUrl);
         config.addDataSourceProperty("user", sanitizedUser);
         config.addDataSourceProperty("password", sanitizedPass);
         
-        String sslMode = (sanitizedUrl.contains("localhost") || sanitizedUrl.contains("127.0.0.1")) ? "prefer" : "require";
+        String sslMode = (finalUrl.contains("localhost") || finalUrl.contains("127.0.0.1")) ? "prefer" : "require";
         config.addDataSourceProperty("sslmode", sslMode);
         
         // Hikari Specifics
@@ -56,7 +65,7 @@ public class DatabaseConfig {
         config.setMaximumPoolSize(10);
         config.setPoolName("CosmosHikariPool");
 
-        String debugUrl = sanitizedUrl.contains("@") ? sanitizedUrl.split("@")[1] : sanitizedUrl;
+        String debugUrl = finalUrl.contains("@") ? finalUrl.split("@")[1] : finalUrl;
         System.out.println("Configuring pool for: " + debugUrl);
         
         DataSource ds = new HikariDataSource(config);
