@@ -115,3 +115,19 @@ export const updateUserSprite = (sprite, user, isConnected) => {
   const glow = sprite.getChildByName('glow')
   if (glow) glow.alpha = isConnected ? 0.5 : 0.15
 }
+
+/**
+ * Creates a floating emoji text element for reactions.
+ */
+export const createReactionSprite = (emoji) => {
+  const text = new PIXI.Text(emoji, new PIXI.TextStyle({
+    fontSize: 28,
+    align: 'center',
+    dropShadow: true,
+    dropShadowColor: 0x000000,
+    dropShadowBlur: 4,
+    dropShadowDistance: 2,
+  }))
+  text.anchor.set(0.5)
+  return text
+}

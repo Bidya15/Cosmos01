@@ -31,6 +31,13 @@ public class ChatMessage {
     @Column(nullable = false, length = 2000)
     private String message;
 
+    @Column
+    private String senderColor; // For persistent visual identity in history
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean isGlobal = false;
+
     @Column(nullable = false)
     private Instant sentAt;
 

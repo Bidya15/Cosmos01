@@ -23,15 +23,15 @@ export default function ChatPanel() {
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
 
-  // 1. MANAGE VISIBILITY: Handle smooth entrance/exit based on proximity connections
+  // 1. MANAGE VISIBILITY: Handle smooth entrance/exit based on proximity connections or Global channel activity
   useEffect(() => {
-    if (connections.size > 0) {
+    if (connections.size > 0 || Object.keys(chatRooms).length > 0) {
       setIsVisible(true)
     } else {
       const timer = setTimeout(() => setIsVisible(false), 300)
       return () => clearTimeout(timer)
     }
-  }, [connections.size])
+  }, [connections.size, chatRooms])
 
   // 2. AUTO-FOCUS & SCROLL: UX helpers for active messaging
   useEffect(() => {
@@ -40,17 +40,26 @@ export default function ChatPanel() {
 
   // 3. AUTO-SELECT: Ensure at least one room is active if connections exist
   useEffect(() => {
-    if (!activeChatRoom && connections.size > 0) {
-      const firstId = [...connections][0]
-      openChatRoom(firstId)
+    if (!activeChatRoom) {
+      if (chatRooms['GLOBAL']) {
+        useCosmosStore.setState({ activeChatRoom: 'GLOBAL' })
+      } else if (connections.size > 0) {
+        const firstId = [...connections][0]
+        openChatRoom(firstId)
+      }
     }
-  }, [connections, activeChatRoom])
+  }, [connections, activeChatRoom, chatRooms])
 
   // --- DERIVED STATE ---
   const connectedUsers = [...connections].map(id => users[id]).filter(Boolean)
   const activeRoom = activeChatRoom ? chatRooms[activeChatRoom] : null
-  const otherUserId = activeRoom?.participants?.find(id => id !== localUser?.id)
+  const isGlobalActive = activeChatRoom === 'GLOBAL'
+  const otherUserId = isGlobalActive ? null : activeRoom?.participants?.find(id => id !== localUser?.id)
   const otherUser = otherUserId ? users[otherUserId] : null
+  
+  // Available tabs: Global + Connection-based rooms
+  const availableRooms = Object.keys(chatRooms).filter(rid => rid === 'GLOBAL' || connections.has(rid.split('__').find(id => id !== localUser?.id)))
+  if (chatRooms['GLOBAL'] && !availableRooms.includes('GLOBAL')) availableRooms.unshift('GLOBAL')
 
   /**
    * Dispatches the current input to both the local store and the remote socket.
@@ -73,7 +82,7 @@ export default function ChatPanel() {
     if (socket?.publish) {
       socket.publish('CHAT', {
         roomId: activeRoom.id,
-        toUserId: otherUserId,
+        toUserId: isGlobalActive ? null : otherUserId,
         message: trimmedInput,
         timestamp: message.timestamp,
       })
@@ -88,11 +97,26 @@ export default function ChatPanel() {
   return (
     <div className={`absolute right-4 bottom-4 w-80 flex flex-col gap-2 pointer-events-auto ${connections.size > 0 ? 'chat-enter' : 'chat-exit'}`}>
       
-      {/* 1. CONNECTION TABS (Multi-User Support) */}
-      {connectedUsers.length > 1 && (
+      {/* 1. CHANNEL TABS (Quantum Links) */}
+      {(connectedUsers.length > 0 || chatRooms['GLOBAL']) && (
         <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
+          {chatRooms['GLOBAL'] && (
+            <button
+              onClick={() => useCosmosStore.setState({ activeChatRoom: 'GLOBAL' })}
+              className="flex-shrink-0 px-3 py-1.5 font-display text-xs tracking-[0.2em] transition-all uppercase"
+              style={{
+                background: activeChatRoom === 'GLOBAL' ? 'rgba(37, 99, 235, 0.4)' : 'rgba(9, 15, 30, 0.8)',
+                border: `1px solid ${activeChatRoom === 'GLOBAL' ? 'rgba(59, 130, 246, 0.6)' : 'rgba(59, 130, 246, 0.15)'}`,
+                color: activeChatRoom === 'GLOBAL' ? '#fff' : '#94a3b8',
+                clipPath: 'polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%)',
+              }}
+            >
+              Global
+            </button>
+          )}
           {connectedUsers.map(user => {
-            const isActive = activeChatRoom === getRoomId(localUser.id, user.id)
+            const rid = getRoomId(localUser.id, user.id)
+            const isActive = activeChatRoom === rid
             return (
               <button
                 key={user.id}
@@ -129,7 +153,12 @@ export default function ChatPanel() {
           {/* Header Section */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <div className="flex items-center gap-2">
-              {otherUser && (
+              {isGlobalActive ? (
+                <>
+                  <div className="w-2.5 h-2.5 rounded-full bg-cosmos-aurora shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                  <span className="font-display text-xs tracking-[0.2em] text-white/90 uppercase">Global Broadcast</span>
+                </>
+              ) : otherUser ? (
                 <>
                   <div className="w-2.5 h-2.5 rounded-full animate-pulse"
                     style={{ backgroundColor: otherUser.color, boxShadow: `0 0 8px ${otherUser.color}` }} />
@@ -137,6 +166,8 @@ export default function ChatPanel() {
                     {otherUser.username}
                   </span>
                 </>
+              ) : (
+                 <span className="font-display text-xs tracking-wider text-white/40 italic">Signal Lost</span>
               )}
             </div>
             <button onClick={closeChatRoom} className="text-white/40 hover:text-white/80 transition-colors">✕</button>
@@ -152,13 +183,15 @@ export default function ChatPanel() {
             ) : (
               activeRoom.messages.map((msg) => {
                 const isLocal = msg.senderId === localUser?.id
-                const sender = isLocal ? localUser : otherUser
+                const senderColor = msg.senderColor || (isLocal ? localUser?.color : (users[msg.senderId]?.color || '#ffffff'))
+                const senderName = isLocal ? localUser?.username : (msg.senderUsername || users[msg.senderId]?.username || 'Unknown')
+                
                 return (
                   <div key={msg.id} className={`flex ${isLocal ? 'justify-end' : 'justify-start'}`}>
                     <div className="max-w-[85%]">
                       {!isLocal && (
-                        <div className="font-display text-[10px] mb-1 opacity-60 ml-2" 
-                             style={{ color: sender?.color }}>{sender?.username}</div>
+                        <div className="font-display text-[9px] mb-1 opacity-60 ml-2 uppercase tracking-tight" 
+                             style={{ color: senderColor }}>{senderName}</div>
                       )}
                       <div
                         className="px-3 py-2 font-body text-sm text-white/90"

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useCosmosStore } from '../store/cosmosStore'
+import { StellarTicker, ActivityFeed } from './WorldEvents'
 
 const WORLD_WIDTH = 2400
 const WORLD_HEIGHT = 1800
@@ -123,21 +124,40 @@ export default function HUD() {
           </div>
         </div>
 
-        {/* Center: Stats */}
-        <div className="flex items-center gap-6">
-          <Stat label="USERS" value={totalUsers} />
-          <Stat label="CONNECTED" value={connectedCount} accent />
+        {/* Center: Stats & Ticker */}
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6">
+            <Stat label="USERS" value={totalUsers} />
+            <Stat label="CONNECTED" value={connectedCount} accent />
+          </div>
+          <StellarTicker />
           <Stat label="POS" value={`${Math.round(localUser.x)}, ${Math.round(localUser.y)}`} mono />
         </div>
 
         {/* Right: User info & Logout */}
         <div className="flex items-center gap-4 pointer-events-auto">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: localUser.color, boxShadow: `0 0 8px ${localUser.color}` }} />
-            <span className="font-display text-xs tracking-wider text-cosmos-comet">
-              {localUser.username}
-            </span>
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: localUser.color, boxShadow: `0 0 8px ${localUser.color}` }} />
+              <span className="font-display text-xs tracking-wider text-cosmos-comet">
+                {localUser.username}
+              </span>
+            </div>
+            
+            {/* Reaction Bar */}
+            <div className="flex gap-1.5 px-2 py-1 bg-slate-900/40 border border-white/5 backdrop-blur-md" 
+                 style={{ clipPath: 'polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%)' }}>
+              {['✨', '🔥', '🚀', '💎', '👽'].map(emoji => (
+                <button
+                  key={emoji}
+                  onClick={() => useCosmosStore.getState().socket?.publish(Topics.REACTION, { emoji })}
+                  className="hover:scale-125 transition-transform duration-200 text-sm filter drop-shadow-md"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
 
           <button
@@ -150,11 +170,12 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* Bottom-left: Controls & Minimap */}
-      <div className="absolute left-4 bottom-4 flex flex-col gap-3 pointer-events-none">
+      {/* Bottom-left: Controls, Minimap & Activity Feed */}
+      <div className="absolute left-4 bottom-4 flex flex-col gap-4 pointer-events-none max-w-[240px]">
+        <ActivityFeed />
         {showMinimap && <Minimap />}
         {showControls && (
-          <div className="font-display text-xs text-cosmos-dust/50 tracking-wider space-y-1">
+          <div className="font-display text-[9px] text-cosmos-dust/40 tracking-[0.2em] space-y-1 ml-1 uppercase">
             <div><span className="text-cosmos-aurora/70">WASD</span> / <span className="text-cosmos-aurora/70">↑↓←→</span> Move</div>
             <div><span className="text-cosmos-aurora/70">ENTER</span> Chat</div>
           </div>

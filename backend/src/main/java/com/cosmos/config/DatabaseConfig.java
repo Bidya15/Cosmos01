@@ -47,7 +47,8 @@ public class DatabaseConfig {
         config.addDataSourceProperty("user", sanitizedUser);
         config.addDataSourceProperty("password", sanitizedPass);
         
-        config.addDataSourceProperty("sslmode", "require");
+        String sslMode = (sanitizedUrl.contains("localhost") || sanitizedUrl.contains("127.0.0.1")) ? "prefer" : "require";
+        config.addDataSourceProperty("sslmode", sslMode);
         
         // Hikari Specifics
         config.setConnectionTimeout(30000);
@@ -55,8 +56,20 @@ public class DatabaseConfig {
         config.setMaximumPoolSize(10);
         config.setPoolName("CosmosHikariPool");
 
-        System.out.println("Configuring pool for: " + dbUrl.trim().split("@")[1]);
+        String debugUrl = sanitizedUrl.contains("@") ? sanitizedUrl.split("@")[1] : sanitizedUrl;
+        System.out.println("Configuring pool for: " + debugUrl);
         
-        return new HikariDataSource(config);
+        DataSource ds = new HikariDataSource(config);
+        
+        // Immediate connection verification for the developer
+        try (java.sql.Connection conn = ds.getConnection()) {
+            System.out.println("✅ COSMOS DATABASE CONNECTED SUCCESSFULLY! [Target: " + debugUrl + "]");
+        } catch (Exception e) {
+            System.err.println("❌ COSMOS DATABASE CONNECTION FAILED!");
+            System.err.println("   Reason: " + e.getMessage());
+            System.err.println("   Please ensure your PostgreSQL server is running and the 'cosmos' database exists.");
+        }
+        
+        return ds;
     }
 }

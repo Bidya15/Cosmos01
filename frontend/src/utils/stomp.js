@@ -104,11 +104,13 @@ export const Topics = {
   COSMOS_BROADCAST: '/topic/cosmos',
   MY_ROOM_STATE: '/user/queue/room-state',
   MY_CHAT: '/user/queue/chat',
+  MY_CHAT_HISTORY: '/user/queue/chat-history',
   MY_PROXIMITY: '/user/queue/proximity',
 
   // Publish
   JOIN: '/app/cosmos/join',
   MOVE: '/app/cosmos/move',
   CHAT: '/app/cosmos/chat',
+  REACTION: '/app/cosmos/reaction',
   LEAVE: '/app/cosmos/leave',
 }

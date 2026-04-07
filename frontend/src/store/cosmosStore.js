@@ -41,6 +41,7 @@ export const useCosmosStore = create((set, get) => ({
   // --- UI STATE ---
   showMinimap: true,
   showControls: true,
+  events: [],          // Global activity log
   socket: null,
 
   // 1. AUTH ACTIONS
@@ -166,10 +167,14 @@ export const useCosmosStore = create((set, get) => ({
       const connections = new Set(state.connections)
       connections.delete(userId)
       
-      // Auto-cleanup chat room if the proximity link is broken
+      // Auto-cleanup chat room if the proximity link is broken (Skip if it's the GLOBAL room)
       const roomId = getRoomId(state.localUser?.id, userId)
       const chatRooms = { ...state.chatRooms }
-      delete chatRooms[roomId]
+      
+      if (roomId !== 'GLOBAL') {
+        delete chatRooms[roomId]
+      }
+      
       const activeChatRoom = state.activeChatRoom === roomId ? null : state.activeChatRoom
       
       return { connections, chatRooms, activeChatRoom }
@@ -197,11 +202,15 @@ export const useCosmosStore = create((set, get) => ({
 
   addMessage: (roomId, message) => {
     set((state) => {
-      const room = state.chatRooms[roomId]
-      if (!room) return state
+      const chatRooms = { ...state.chatRooms }
+      if (!chatRooms[roomId]) {
+        chatRooms[roomId] = { id: roomId, messages: [], participants: [] }
+      }
+      
+      const room = chatRooms[roomId]
       return {
         chatRooms: {
-          ...state.chatRooms,
+          ...chatRooms,
           [roomId]: {
             ...room,
             messages: [...room.messages, message]
@@ -211,10 +220,37 @@ export const useCosmosStore = create((set, get) => ({
     })
   },
 
+  addHistory: (messages) => {
+    for (const msg of messages) {
+      get().addMessage(msg.roomId, {
+        id: `hist_${msg.timestamp}_${Math.random()}`,
+        senderId: msg.fromUserId,
+        senderUsername: msg.fromUsername,
+        senderColor: msg.color,
+        text: msg.message,
+        timestamp: msg.timestamp,
+        isGlobal: msg.isGlobal
+      })
+    }
+  },
+
   // 4. UTILITY ACTIONS
   setSocket: (socket) => set({ socket }),
   setShowMinimap: (v) => set({ showMinimap: v }),
   setShowControls: (v) => set({ showControls: v }),
+
+  addEvent: (text, type = 'SYSTEM', color = '#06b6d4') => {
+    const event = {
+      id: `ev_${Date.now()}_${Math.random()}`,
+      text,
+      type,
+      color,
+      timestamp: Date.now()
+    }
+    set(state => ({
+      events: [event, ...state.events].slice(0, 10)
+    }))
+  },
 }))
 
 /**

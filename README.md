@@ -6,26 +6,29 @@ A production-ready 2D virtual environment where users move freely and chat autom
 
 ## ✨ Features Spotlight
 
-Feature | Technical Details |
-
- **Pixel-Perfect Renderer** 2400×1800 world via **PixiJS (WebGL)** with starfield, grid, and camera easing.
- **Real-Time Sync** | **STOMP over SockJS** (Spring Boot) with 20fps position broadcasts.
- **Dual-Layer Proximity**  Distance math on both Client (immediate UI) and Server (source of truth). 
- **Secure Identity Hub**  Multimodal Auth Terminal (Login, Register, **Password Recovery**).
- **Visual Persistence**  User identity (username, persistent cosmic color) remains consistent across sessions. 
-|**Adaptive UI**  Dynamic Chat panels, Minimap overview, and HUD with real-time signal badges. 
+| Feature | Technical Details |
+| :--- | :--- |
+| **Pixel-Perfect Renderer** | 2400×1800 world via **PixiJS (WebGL)** with starfield, grid, and camera easing. |
+| **Real-Time Sync** | **STOMP over SockJS** (Spring Boot) with 20fps position broadcasts. |
+| **Dual-Layer Proximity** | Distance math on both Client (immediate UI) and Server (source of truth). |
+| **Secure Identity Hub** | Multimodal Auth Terminal (Login, Register, **Password Recovery**). |
+| **Visual Persistence** | User identity (username, persistent cosmic color) remains consistent. |
+| **Adaptive UI** | Dynamic Chat panels, Minimap overview, and HUD with real-time telemetry. |
 
 ---
 
-## 🏗️ Architectural Rationale
+## 🛰️ Cosmic Intelligence System (UI)
+Cosmos features a high-fidelity information layer designed for maximum situational awareness:
+- **Stellar News Ticker**: A rotating system status bar showing network latency, space coordinates, and capacity.
+- **World Activity Feed**: A real-time telemetry log tracking every join, departure, and social reaction in the space.
+- **Signal Tracking**: Dedicated HUD badges for active proximity connections with pulse animations.
 
-### **Frontend: React + PIXI.js**
-- **WebGL Rendering**: PIXI.js provides a hardware-accelerated 2D pipeline capable of handling 100+ concurrent avatars at 60fps.
-- **Zustand State Management**: A minimal, non-boilerplate approach to global state that ensures sub-millisecond updates for high-frequency game logic.
+---
 
-### **Backend: Spring Boot + STOMP**
-- **STOMP Protocol**: Provides high-level messaging patterns (Pub/Sub) on top of WebSockets, reducing network complexity.
-- **PostgreSQL Persistence**: Robust relational storage for user identity and "Enigma" key security.
+## 📽️ Unique Feature: Stellar Reactions
+Beyond standard chat, Cosmos implements **Stellar Reactions** — a high-performance visual interaction system. Users can trigger emojis that float above their avatars in real-time. 
+- **Physics-Based Animation**: Reactions feature a smooth upward float with alpha-fading and scale-pulsing.
+- **Broadcast Optimized**: Distributed via specialized WebSocket events.
 
 ---
 
@@ -33,15 +36,15 @@ Feature | Technical Details |
 
 ### Prerequisites
 - Node.js ≥ 18
-- Java 17+
+- Java 21+
 - Maven 3.8+
-- PostgreSQL (Optional; H2 in-memory is enabled by default for zero-config).
+- **PostgreSQL**: Ensure your server is running and a database named `cosmos` exists.
 
 ### 1. Establish the Backend
 ```bash
 cd backend
 mvn spring-boot:run
-# ✅ Backend running at http://localhost:8080
+# ✅ Watch for: "COSMOS DATABASE CONNECTED SUCCESSFULLY!"
 ```
 
 ### 2. Launch the Terminal (Frontend)
@@ -49,43 +52,48 @@ mvn spring-boot:run
 cd frontend
 npm install
 npm run dev
-# ✅ Frontend running at http://localhost:3000
+# ✅ Local development at http://localhost:5173
 ```
 
 ### 3. Verification Protocol
-1. Open **two browser tabs** at `http://localhost:3000`.
-2. Register two unique identifies (e.g., Commander, Star-Walker).
-3. Move close to each other to trigger the **Signal Acquired** notification and open the chat terminal.
-4. Move apart to trigger the **Signal Lost** event and auto-disconnect.
+1. Open **two browser tabs** at `http://localhost:5173`.
+2. Register two unique identities.
+3. Move close to each other to trigger the **Signal Acquired** notification.
+4. **Observe UI**: Watch the **Activity Feed** log the connection and the **News Ticker** sync system data.
 
 ---
 
 ## 🛠️ Tech Stack Justification
 
 | Layer | Tech | Version | Why |
-Spring Boot:  Production-grade robustness, excellent multi-threading for handling concurrent user state, and built-in STOMP support. 
-Spring WebSocket:  STOMP broker pattern provides a superior message-oriented (Pub/Sub) model vs. basic event-based sockets. 
-Spring Data JPA: Repository pattern for clean data access and seamless mapping to our relational model. 
-PostgreSQL: Chosen for **ACID compliance** and data integrity; superior for structured relation-based data like user profiles and chat history compared to NoSQL. 
-| **H2** | — | Zero-config in-memory DB for immediate local developer onboarding.
-Lombok: Dramatically reduces boilerplate (builders, getters), keeping the "humanized" codebase clean.
+| :--- | :--- | :--- | :--- |
+| **Server** | Spring Boot | 3.2.0 | Production-grade robustness and built-in STOMP support. |
+| **Real-Time** | Spring WebSocket | — | STOMP broker pattern for superior message-oriented (Pub/Sub) model. |
+| **Database** | PostgreSQL | 42.6.0 | Relational integrity for structured user data. |
+| **Frontend** | React + PixiJS | 18 / 7 | Performance-first WebGL rendering pipeline. |
 
 ---
 
-## 🧪 Why Spring + PostgreSQL + STOMP? (Technical Justification)
+## 🎁 Bonus Features Implemented
 
-While the assignment recommended a Node.js/MongoDB stack, we have opted for a **Spring Boot + PostgreSQL + STOMP** architecture to demonstrate advanced system design thinking:
+1.  **Recent Chat Recovery**: On joining, users recover the last 20 messages.
+2.  **Global Broadcast System**: Support for room-wide announcements via `GLOBAL` routing.
+3.  **Cosmic Intelligence Suite**: Real-time telemetry ticker and activity feed.
+4.  **Stellar Reactions**: Real-time emoji popping system with custom animation engine.
 
-1.  Type Safety & Maintainability: By using Java and Spring Boot, we ensure that our "Cosmic Signals" (DTOs) are strictly typed. This prevents the runtime "undefined" errors common in smaller Node.js implementations and makes the codebase more resilient to scaling.
-2.  Relational Data Integrity (ACID): For user profiles, sessions, and chat history, a relational database like PostgreSQL is the "Senior" choice. It ensures that every established link and chat message is persisted with 100% integrity, whereas a NoSQL approach (MongoDB) can lead to data fragmentation in highly relational interaction models.
-3.  Structured Messaging (STOMP): Unlike basic Socket.IO events, STOMP is a standard message-oriented protocol. It allows us to use a professional Pub/Sub pattern (e.g., `/topic/cosmos` for broadcasts and `/user/queue/proximity` for targeted signals), making the spatial synchronization logic more predictable and easier to debug.
-4.  Java Concurrency: Java's robust multi-threading model is better suited for real-time spatial calculations (Proximity detection) across many simultaneous users, ensuring that every "Signal Acquired" event is processed with minimal latency.
+---
+
+## 📽️ Demo Video (2–5 minutes)
+[Insert Link to Your Demo Video Here]
 
 ---
 
 ## 📄 Submission Checklist
-- [x] **Well-Structured Codebase**: Modular components and clean, humanized backend architecture.
-- [x] **User Movement**: Precise WASD/Arrow keys with diagonal normalization.
-- [x] **Real-Time Logic**: 20fps spatial synchronization across all active signals.
-- [x] **Proximity Chat**: Fully automated "Connect on Approach / Disconnect on Departure" behavior.
-- [x] **Bonus Items**: Persistent Visual Identity, Multimodal Password Recovery (Forgot/Reset).
+- [x] **Well-Structured Codebase**: Modular components and clean architecture.
+- [x] **Clear README**: Detailed features, architecture, and setup.
+- [x] **Setup and Run Instructions**: Proven verification protocol.
+- [x] **User Movement**: Smooth WebGL-based avatar control.
+- [x] **Real-Time Interaction**: Optimized WebSocket synchronization.
+- [x] **Chat Connect/Disconnect**: Automated proximity-driven logic.
+- [x] **Bonus Features**: History recovery, global broadcast, and persistent identity.
+- [x] **Unique Bonus**: Stellar Reactions and Cosmic Intelligence UI.

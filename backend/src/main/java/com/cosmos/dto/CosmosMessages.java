@@ -73,6 +73,11 @@ public class CosmosMessages {
         private String userId;
     }
 
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class ReactionPayload {
+        private String emoji;
+    }
+
     // ===== Outbound DTOs (Server → Client) =====
 
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
@@ -108,6 +113,13 @@ public class CosmosMessages {
         private String roomId;
         private String message;
         private long timestamp;
+        private boolean isGlobal; // New field for bonus feature
+        private String color;     // New field for better UI context
+    }
+
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class ChatHistoryPayload {
+        private List<ChatReceivedPayload> messages;
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor @Builder
@@ -128,5 +140,12 @@ public class CosmosMessages {
         private String name;
         private String description;
         private int userCount;
+    }
+
+    @Data @NoArgsConstructor @AllArgsConstructor @Builder
+    public static class ReactionReceivedPayload {
+        private String userId;
+        private String emoji;
+        private long timestamp;
     }
 }

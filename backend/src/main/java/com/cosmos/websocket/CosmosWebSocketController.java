@@ -48,16 +48,25 @@ public class CosmosWebSocketController {
         }
     }
 
-    /**
-     * Client sends: /app/cosmos/chat
-     * Payload: { roomId, toUserId, message, timestamp }
-     */
     @MessageMapping("/cosmos/chat")
     public void handleChat(@Payload ChatPayload payload,
                            SimpMessageHeaderAccessor headerAccessor) {
         String userId = getUserId(headerAccessor);
         if (userId != null) {
             cosmosService.handleChat(userId, payload);
+        }
+    }
+
+    /**
+     * Client sends: /app/cosmos/reaction
+     * Payload: { emoji, timestamp }
+     */
+    @MessageMapping("/cosmos/reaction")
+    public void handleReaction(@Payload ReactionPayload payload,
+                               SimpMessageHeaderAccessor headerAccessor) {
+        String userId = getUserId(headerAccessor);
+        if (userId != null) {
+            cosmosService.handleReaction(userId, payload);
         }
     }
 

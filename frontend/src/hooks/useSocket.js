@@ -14,7 +14,7 @@ export function useSocket(localUser) {
   const {
     setSocket, upsertUser, removeUser,
     connections, addConnection, removeConnection,
-    openChatRoom, addMessage, users,
+    openChatRoom, addMessage, users, addEvent,
   } = useCosmosStore()
 
   const localUserRef = useRef(localUser)
@@ -43,6 +43,7 @@ export function useSocket(localUser) {
         subscribe(spaceTopic, handleBroadcast)
         subscribe(Topics.MY_ROOM_STATE, handleRoomState)
         subscribe(Topics.MY_CHAT, handleChat)
+        subscribe(Topics.MY_CHAT_HISTORY, handleChatHistory)
         subscribe(Topics.MY_PROXIMITY, handleProximity)
 
         // --- ANNOUNCE ENTRANCE ---
@@ -77,9 +78,14 @@ export function useSocket(localUser) {
     const local = localUserRef.current
     switch (type) {
       case 'USER_JOINED':
-        if (payload.id !== local?.id) upsertUser(payload)
+        if (payload.id !== local?.id) {
+          upsertUser(payload)
+          addEvent(`${payload.username} entered orbit`, 'JOIN', payload.color)
+        }
         break
       case 'USER_LEFT':
+        const leavingUser = usersRef.current[payload.userId]
+        if (leavingUser) addEvent(`${leavingUser.username} lost signal`, 'LEAVE', leavingUser.color)
         removeUser(payload.userId)
         removeConnection(payload.userId)
         break
@@ -90,6 +96,13 @@ export function useSocket(localUser) {
           upsertUser({ id: payload.userId, x: payload.x, y: payload.y })
         }
         checkProximity(payload.userId, payload.x, payload.y)
+        break
+      case 'USER_REACTION':
+        // Trigger visual effect in the renderer (we'll use a custom event or store flag)
+        window.dispatchEvent(new CustomEvent('cosmos:reaction', { detail: payload }))
+        
+        const reactor = usersRef.current[payload.userId] || (payload.userId === local?.id ? local : null)
+        if (reactor) addEvent(`${reactor.username}: ${payload.emoji}`, 'REACTION', reactor.color)
         break
     }
   }
@@ -106,9 +119,19 @@ export function useSocket(localUser) {
     addMessage(payload.roomId, {
       id: `msg_${Date.now()}_${Math.random()}`,
       senderId: payload.fromUserId,
+      senderUsername: payload.fromUsername,
+      senderColor: payload.color,
       text: payload.message,
       timestamp: payload.timestamp,
+      isGlobal: payload.isGlobal
     })
+  }
+
+  function handleChatHistory(envelope) {
+    const { payload } = envelope
+    if (payload.messages) {
+      useCosmosStore.getState().addHistory(payload.messages)
+    }
   }
 
   /**

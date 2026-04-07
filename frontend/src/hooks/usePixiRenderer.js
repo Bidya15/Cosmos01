@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js'
 import { useCosmosStore } from '../store/cosmosStore'
 import { publish, Topics } from '../utils/stomp'
 import { WORLD_CONFIG, AVATAR_CONFIG, COLORS } from '../config'
-import { createUserSprite, updateUserSprite, safeColorToInt } from '../utils/pixiUtils'
+import { createUserSprite, updateUserSprite, safeColorToInt, createReactionSprite } from '../utils/pixiUtils'
 
 /**
  * Main PixiJS rendering hook for the Cosmos virtual interaction space.
@@ -19,6 +19,7 @@ export function usePixiRenderer(containerRef) {
   const linksLayerRef = useRef(null)
   const keysRef = useRef({})
   const lastEmitRef = useRef(0)
+  const reactionsRef = useRef([]) // { sprite, startTime, userId }
 
   const localUser = useCosmosStore(s => s.localUser)
   const users = useCosmosStore(s => s.users)
@@ -113,6 +114,21 @@ export function usePixiRenderer(containerRef) {
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
 
+    const onReaction = (e) => {
+      const { userId, emoji } = e.detail
+      const world = worldRef.current
+      if (!world) return
+      
+      const reactionSprite = createReactionSprite(emoji)
+      world.addChild(reactionSprite)
+      reactionsRef.current.push({
+        sprite: reactionSprite,
+        startTime: Date.now(),
+        userId
+      })
+    }
+    window.addEventListener('cosmos:reaction', onReaction)
+
     const onResize = () => {
       if (!containerRef.current || !appRef.current) return
       const { clientWidth, clientHeight } = containerRef.current
@@ -205,11 +221,35 @@ export function usePixiRenderer(containerRef) {
         glow.alpha = 0.18 + Math.sin(tick * 0.04) * 0.1
         glow.scale.set(1 + Math.sin(tick * 0.03) * 0.05)
       }
+
+      // --- Reactions Animation ---
+      const now = Date.now()
+      reactionsRef.current = reactionsRef.current.filter(r => {
+        const elapsed = now - r.startTime
+        const life = 1000 // 1 second lifetime
+        if (elapsed > life) {
+          world.removeChild(r.sprite)
+          return false
+        }
+
+        const progress = elapsed / life
+        const targetSprite = r.userId === localUser.id ? localSpriteRef.current : userSpritesRef.current[r.userId]
+        
+        if (targetSprite) {
+          r.sprite.x = targetSprite.x
+          r.sprite.y = targetSprite.y - AVATAR_CONFIG.RADIUS - 20 - (progress * 40)
+        }
+        
+        r.sprite.alpha = 1 - progress
+        r.sprite.scale.set(0.8 + Math.sin(progress * Math.PI) * 0.4)
+        return true
+      })
     })
 
     return () => {
       window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('resize', onResize)
+      window.removeEventListener('cosmos:reaction', onReaction)
       if (appRef.current) appRef.current.destroy(true, { children: true })
       appRef.current = null; worldRef.current = null; localSpriteRef.current = null; userSpritesRef.current = {}
     }

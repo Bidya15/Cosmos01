@@ -125,6 +125,30 @@ public class CosmosService {
                 wrapEvent("USER_JOINED", userDto)
         );
 
+        // --- BONUS FEATURE: Recent Chat History ---
+        // Fetch top 20 global messages and send as history to the joining user
+        List<ChatReceivedPayload> history = chatMessageRepository.findTop20ByIsGlobalTrueOrderBySentAtDesc()
+                .stream()
+                .map(msg -> ChatReceivedPayload.builder()
+                        .fromUserId(msg.getSenderId())
+                        .fromUsername(msg.getSenderUsername())
+                        .roomId("GLOBAL")
+                        .message(msg.getMessage())
+                        .timestamp(msg.getSentAt().toEpochMilli())
+                        .isGlobal(true)
+                        .color(msg.getSenderColor())
+                        .build())
+                .sorted(Comparator.comparingLong(ChatReceivedPayload::getTimestamp)) // chronological order
+                .collect(java.util.stream.Collectors.toList());
+
+        if (!history.isEmpty()) {
+            messagingTemplate.convertAndSendToUser(
+                    principalName,
+                    "/queue/chat-history",
+                    wrapEvent("CHAT_HISTORY", ChatHistoryPayload.builder().messages(history).build())
+            );
+        }
+
         log.info("[Join] Successfully established session {} for {}.", principalName, payload.getId());
     }
 
@@ -186,20 +210,23 @@ public class CosmosService {
         UserDTO sender = userStateStore.getUser(fromUserId).orElse(null);
         if (sender == null) return;
 
-        // --- ENFORCE PROXIMITY LOCK ---
-        if (!userStateStore.getConnections(fromUserId).contains(payload.getToUserId())) {
+        boolean isGlobal = "GLOBAL".equalsIgnoreCase(payload.getRoomId());
+        String roomId = isGlobal ? "GLOBAL" : computeRoomId(fromUserId, payload.getToUserId());
+
+        // --- ENFORCE PROXIMITY LOCK (Only for non-global chats) ---
+        if (!isGlobal && !userStateStore.getConnections(fromUserId).contains(payload.getToUserId())) {
             log.warn("[Chat System] Refused delivery: Users not in proximity range.");
             return;
         }
-
-        String roomId = computeRoomId(fromUserId, payload.getToUserId());
 
         // Log to DB for historical analytics
         ChatMessage chatMessage = ChatMessage.builder()
                 .roomId(roomId)
                 .senderId(fromUserId)
                 .senderUsername(sender.getUsername())
+                .senderColor(sender.getColor()) // Store color for history
                 .message(safeMessage)
+                .isGlobal(isGlobal)
                 .sentAt(Instant.now())
                 .build();
         chatMessageRepository.save(chatMessage);
@@ -210,16 +237,27 @@ public class CosmosService {
                 .roomId(roomId)
                 .message(safeMessage)
                 .timestamp(payload.getTimestamp())
+                .isGlobal(isGlobal)
+                .color(sender.getColor())
                 .build();
 
-        // Deliver directly to the recipient's personal WebSocket queue
-        userStateStore.getSessionId(payload.getToUserId()).ifPresent(toSession ->
-                messagingTemplate.convertAndSendToUser(
-                        toSession,
-                        "/queue/chat",
-                        wrapEvent("CHAT_RECEIVED", outbound)
-                )
-        );
+        if (isGlobal) {
+            // Deliver to the entire space (Broadcast)
+            String spaceId = userStateStore.getUserSpace(fromUserId).orElse("default");
+            messagingTemplate.convertAndSend(
+                    "/topic/cosmos/" + spaceId,
+                    wrapEvent("CHAT_RECEIVED", outbound)
+            );
+        } else {
+            // Deliver directly to the recipient's personal WebSocket queue
+            userStateStore.getSessionId(payload.getToUserId()).ifPresent(toSession ->
+                    messagingTemplate.convertAndSendToUser(
+                            toSession,
+                            "/queue/chat",
+                            wrapEvent("CHAT_RECEIVED", outbound)
+                    )
+            );
+        }
     }
 
     // ========== LEAVE / EXIT ==========
@@ -257,6 +295,28 @@ public class CosmosService {
                 .description(s.getDescription())
                 .userCount(userStateStore.getUsersInSpace(s.getId()).size())
                 .build()).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Broadcasts a social reaction (emoji) to all users in the same space.
+     */
+    public void handleReaction(String userId, ReactionPayload payload) {
+        if (!userStateStore.isUserActive(userId) || payload.getEmoji() == null) return;
+        
+        String spaceId = userStateStore.getUserSpace(userId).orElse("default");
+        
+        ReactionReceivedPayload outbound = ReactionReceivedPayload.builder()
+                .userId(userId)
+                .emoji(payload.getEmoji())
+                .timestamp(System.currentTimeMillis())
+                .build();
+        
+        messagingTemplate.convertAndSend(
+                "/topic/cosmos/" + spaceId,
+                wrapEvent("USER_REACTION", outbound)
+        );
+        
+        log.debug("[Reaction] User {} reacted with {}", userId, payload.getEmoji());
     }
 
     // ========== PRIVATE HELPERS ==========
