@@ -6,24 +6,25 @@ import com.cosmos.repository.UserRepository;
 import com.cosmos.repository.UserSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class DataInitializer implements CommandLineRunner {
+public class DataInitializer {
 
     private final SpaceRepository spaceRepository;
     private final UserSessionRepository userSessionRepository;
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    @Override
-    public void run(String... args) {
+    @EventListener(ApplicationReadyEvent.class) // Ensures App + Hibernate are fully ready
+    @Transactional
+    public void seedInitialData() {
         // 1. Seed Spaces
         if (spaceRepository.count() == 0) {
             log.info("[Data] Seeding initial spaces...");
