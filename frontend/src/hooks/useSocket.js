@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useCosmosStore } from '../store/cosmosStore'
 import { createSocket, subscribe, publish, disconnectSocket, Topics } from '../utils/stomp'
 import { detectProximityChanges } from '../utils/proximity'
-import { AVATAR_CONFIG } from '../config'
+import { AVATAR_CONFIG, WS_BASE } from '../config'
 
 /**
  * Specialized socket hook for managing the real-time communication lifecycle.
@@ -33,7 +33,7 @@ export function useSocket(localUser) {
     window.__COSMOS_USER_ID__ = localUser.id
 
     const init = async () => {
-      const client = await createSocket('http://localhost:8080')
+      const client = await createSocket(WS_BASE)
       setSocket({ publish, client })
 
       const onConnected = () => {
