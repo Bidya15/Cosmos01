@@ -1,50 +1,56 @@
 package com.cosmos.config;
  
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
  
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.io.IOException;
  
 @Configuration
 public class CorsConfig {
  
-    @Value("${cosmos.websocket.allowed-origins}")
-    private String allowedOrigins;
- 
     /**
-     * Registers a high-priority CorsFilter.
-     * This is the "Final Boss" of CORS fixes. It handles preflight (OPTIONS) requests
-     * at the start of the filter chain, long before MVC controllers are even considered.
+     * The Nuclear Option: Manual Jakarta Servlet Filter.
+     * This bypasses all Spring abstractions and manually writes CORS headers 
+     * directly to the raw HttpServletResponse.
      */
     @Bean
-    public FilterRegistrationBean<CorsFilter> corsFilterRegistrationBean() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
-        
-        // Robust splitting & trimming of origins
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
-        
-        config.setAllowedOriginPatterns(origins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setMaxAge(3600L);
+    public FilterRegistrationBean<Filter> manualCorsFilter() {
+        Filter filter = new Filter() {
+            @Override
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) 
+                    throws IOException, ServletException {
+                
+                HttpServletResponse res = (HttpServletResponse) response;
+                HttpServletRequest req = (HttpServletRequest) request;
  
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
+                // 1. Dynamic Origin Reflection (Most compatible with Credentials=true)
+                String origin = req.getHeader("Origin");
+                res.setHeader("Access-Control-Allow-Origin", origin != null ? origin : "*");
+                
+                // 2. Mandatory CORS Headers
+                res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
+                res.setHeader("Access-Control-Allow-Max-Age", "3600");
+                res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, X-Requested-With, Origin");
+                res.setHeader("Access-Control-Allow-Credentials", "true");
+                res.setHeader("Access-Control-Expose-Headers", "Authorization");
  
-        FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(new CorsFilter(source));
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE); // Run before EVERYTHING else
+                // 3. Force 200 OK for Preflight (OPTIONS)
+                if ("OPTIONS".equalsIgnoreCase(req.getMethod())) {
+                    res.setStatus(HttpServletResponse.SC_OK);
+                } else {
+                    chain.doFilter(request, response);
+                }
+            }
+        };
+ 
+        FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>(filter);
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE); // Absolute priority
+        bean.addUrlPatterns("/*");
         return bean;
     }
 }
